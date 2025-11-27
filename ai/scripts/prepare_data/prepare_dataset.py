@@ -2,16 +2,13 @@ import os
 import shutil
 import random
 
-# Thư mục nhãn
-LABEL_DIR = "ai/data/label_v4"
+LABEL_DIR = "ai/data/label_v6"
 
 # Thư mục ảnh
-IMAGE_DIR = "ai/data/new-dataset-trash-type-v4"
+IMAGE_DIR = "ai/data/new-dataset-trash-type-v6"
 
-# Thư mục output theo format YOLO
-OUTPUT_DIR = "6_class_dataset_v2"
+OUTPUT_DIR = "ai/data/6_class_dataset_v6"
 
-# Danh sách class theo đúng thứ tự bạn dùng để gán ID
 CLASSES = [
     "battery",
     "glass",
@@ -21,9 +18,9 @@ CLASSES = [
     "plastic"
 ]
 
-TRAIN_RATIO = 0.7
+TRAIN_RATIO = 0.75
 VAL_RATIO = 0.2
-TEST_RATIO = 0.1
+TEST_RATIO = 0.05
 
 def ensure_dirs():
     for split in ["train", "val", "test"]:
@@ -69,10 +66,8 @@ def process_class(class_name, class_id):
             img_name = os.path.basename(img_path)
             lbl_name = os.path.basename(lbl_path)
 
-            # Copy ảnh
             shutil.copy(img_path, os.path.join(OUTPUT_DIR, "images", split_name, img_name))
 
-            # Copy label
             shutil.copy(lbl_path, os.path.join(OUTPUT_DIR, "labels", split_name, lbl_name))
 
     print(f" -> Finished {class_name}: {total} files")
@@ -89,7 +84,7 @@ def main():
     for idx, class_name in enumerate(CLASSES):
         process_class(class_name, idx)
 
-    print("\n✔ Dataset chuẩn YOLO đã sẵn sàng tại thư mục:", OUTPUT_DIR)
+    print("\nDone:", OUTPUT_DIR)
 
 if __name__ == "__main__":
     main()

@@ -64,7 +64,7 @@ def count_class_ids_in_folder(target_folder):
 # Đặt đường dẫn ĐÚNG đến thư mục nhãn bạn muốn KIỂM TRA
 # Ví dụ: 'D:/LuanVan/dataset_raw/glass_lb' (để kiểm tra sau khi sửa)
 # Hoặc: 'D:/LuanVan/trash_yolo_dataset/labels/train' (để kiểm tra bộ gộp)
-THU_MUC_CAN_KIEM_TRA = 'yolo_dataset/labels/train'
+THU_MUC_CAN_KIEM_TRA = 'ai/data/6_class_dataset_v6/labels/train'
 
 # --- GỌI HÀM ĐỂ CHẠY ---
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 import os
 
-IMAGE_DIR = "new-dataset-trash-type-v2\\metal"   # Thư mục chứa ảnh
-LABEL_DIR = "label\\metal_txt"                        # Thư mục chứa txt nhãn
+IMAGE_DIR = "new-dataset-trash-type-v2\\metal"
+LABEL_DIR = "label\\metal_txt"
 
 IMAGE_EXT = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 
@@ -30,7 +30,6 @@ def get_all_labels(root):
     return labels
 
 def main():
-    print("Đang kiểm tra dữ liệu...\n")
 
     img_dict = get_all_images(IMAGE_DIR)
     lbl_dict = get_all_labels(LABEL_DIR)
@@ -42,32 +41,25 @@ def main():
     missing_images = lbl_names - img_names
     matched = img_names & lbl_names
 
-    print("📌 Tổng số ảnh:", len(img_names))
-    print("📌 Tổng số nhãn:", len(lbl_names))
-    print("📌 Ảnh & nhãn khớp:", len(matched))
-    print("\n====================================\n")
+    print("Tổng số ảnh:", len(img_names))
+    print("Tổng số nhãn:", len(lbl_names))
+    print("Ảnh & nhãn khớp:", len(matched))
 
-    # 1. Ảnh không có nhãn
-    print("❌ ẢNH THIẾU NHÃN:")
+    print("ẢNH THIẾU NHÃN:")
     for name in sorted(missing_labels):
         print(" -", img_dict[name])
     if not missing_labels:
-        print(" → Không có.")
+        print("Không có.")
 
-    print("\n====================================\n")
 
-    # 2. Nhãn không có ảnh
-    print("❌ NHÃN THIẾU ẢNH:")
+    print("NHÃN THIẾU ẢNH:")
     for name in sorted(missing_images):
         print(" -", lbl_dict[name])
     if not missing_images:
-        print(" → Không có.")
-
-    print("\n====================================\n")
+        print("Không có.")
 
     # 3. Những cặp đầy đủ
-    print("✔ ẢNH + NHÃN ĐẦY ĐỦ:", len(matched))
-    # (Nếu muốn in chi tiết thì mở comment dòng dưới)
+    print("ẢNH + NHÃN ĐẦY ĐỦ:", len(matched))
     # for name in sorted(matched):
     #     print(" -", name)
 
