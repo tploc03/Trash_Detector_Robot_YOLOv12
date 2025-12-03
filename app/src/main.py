@@ -9,17 +9,20 @@ from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QImage, QPixmap, QIcon
 
 from network import NetworkThread
-from styles import MAIN_THEME, BTN_STOP_STYLE
+from styles import MAIN_THEME, BTN_STOP_STYLE, PRIMARY_COLOR, PRIMARY_DARK, TEXT_PRIMARY
 from ui.widgets import SensorBox
 from ui.panels import ManualPanel, AutoPanel, SettingsPanel
 
 class RobotApp(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("TRASH COLLECTOR V3 - COMMAND CENTER")
-        self.resize(1200, 700)
+        self.setWindowTitle("YOLOV12-Based Trash Detection Robot")
+        self.resize(1400, 800)
         self.setStyleSheet(MAIN_THEME)
         self.setWindowIcon(QIcon("app/resources/icons/rover.ico"))
+        
+        # Modern window styling
+        self.setWindowOpacity(1.0)
         # Network Logic
         self.net_thread = NetworkThread()
         self.net_thread.data_received.connect(self.update_sensors)
@@ -40,13 +43,26 @@ class RobotApp(QMainWindow):
         # [CỘT TRÁI] VIDEO (65%)
         # Tạo một Frame chứa video để căn giữa dễ hơn
         video_container = QFrame()
-        video_container.setStyleSheet("background-color: #000; border-radius: 10px; border: 2px solid #333;")
+        video_container.setStyleSheet("""
+            background-color: #FFFFFF; 
+            border-radius: 16px; 
+            border: 2px solid #0078D4;
+            padding: 2px;
+        """)
         video_layout = QVBoxLayout(video_container)
         video_layout.setContentsMargins(0,0,0,0) # Full khung
         
         # Header Info (FPS) - Overlay style
-        self.lbl_fps = QLabel("AI: 0 FPS | PING: -- ms")
-        self.lbl_fps.setStyleSheet("color: #00b894; font-weight: bold; padding: 10px; background: transparent;")
+        self.lbl_fps = QLabel("⚡ AI: 0 FPS | 📡 PING: -- ms")
+        self.lbl_fps.setStyleSheet("""
+            color: #0078D4; 
+            font-weight: bold; 
+            padding: 12px; 
+            background: rgba(255, 255, 255, 0.85);
+            border-radius: 8px;
+            font-size: 12px;
+            letter-spacing: 0.5px;
+        """)
         self.lbl_fps.setAlignment(Qt.AlignmentFlag.AlignRight)
         
         # Camera Display
@@ -125,8 +141,20 @@ class RobotApp(QMainWindow):
     def toggle_mode(self, checked):
         self.is_auto = checked
         if checked:
-            self.btn_mode.setText("AUTO MODE RUNNING... (CLICK TO MANUAL)")
-            self.btn_mode.setStyleSheet("background-color: #00b894; color: #1e1e1e; border: none;")
+            self.btn_mode.setText("⚙ AUTO MODE RUNNING (CLICK TO MANUAL)")
+            self.btn_mode.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: #06D6A0; 
+                    color: #000; 
+                    border: none;
+                    border-radius: 8px;
+                    padding: 12px 24px;
+                    font-weight: 700;
+                    font-size: 12px;
+                }}
+                QPushButton:hover {{ background-color: #2EE7B8; }}
+                QPushButton:pressed {{ background-color: #04A87E; }}
+            """)
             self.stack.setCurrentIndex(1)
             self.net_thread.send_command({"cmd": "AUTO_START"})
         else:
@@ -190,13 +218,38 @@ class RobotApp(QMainWindow):
         self.panel_manual.btn_d.set_active(Qt.Key.Key_D in self.keys_pressed)
 
     def mock_video(self):
-        # Tạo ảnh giả lập với nền xám nhẹ để không bị chìm hẳn vào nền đen
+        # Tạo ảnh giả lập với nền gradient đẹp
         img = np.zeros((480, 640, 3), dtype=np.uint8)
-        img[:] = (30, 30, 30) # Dark gray background
+        
+        # Create gradient background (from dark blue to slightly lighter)
+        for y in range(480):
+            # Gradient effect
+            intensity = int(30 + (y / 480) * 20)
+            img[y, :] = [intensity, intensity + 10, intensity + 15]
+        
+        # Add subtle grid pattern
+        for x in range(0, 640, 80):
+            cv2.line(img, (x, 0), (x, 480), (50, 50, 50), 1)
+        for y in range(0, 480, 60):
+            cv2.line(img, (0, y), (640, y), (50, 50, 50), 1)
         
         # Chữ đẹp hơn
-        cv2.putText(img, "WAITING FOR STREAM...", (120, 240), cv2.FONT_HERSHEY_DUPLEX, 0.9, (200, 200, 200), 1)
-        cv2.rectangle(img, (200, 150), (440, 330), (0, 184, 148), 2) # Xanh ngọc
+        cv2.putText(img, "WAITING FOR STREAM", (140, 200), cv2.FONT_HERSHEY_TRIPLEX, 0.8, (180, 180, 180), 1)
+        cv2.putText(img, "Connect your camera...", (160, 260), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (150, 150, 150), 1)
+        
+        # Modern rectangle border (Mint Green)
+        cv2.rectangle(img, (180, 120), (460, 340), (0, 214, 160), 3)
+        
+        # Add corner accents
+        corner_size = 30
+        cv2.line(img, (180, 120), (180 + corner_size, 120), (0, 214, 160), 3)
+        cv2.line(img, (180, 120), (180, 120 + corner_size), (0, 214, 160), 3)
+        cv2.line(img, (460, 120), (460 - corner_size, 120), (0, 214, 160), 3)
+        cv2.line(img, (460, 120), (460, 120 + corner_size), (0, 214, 160), 3)
+        cv2.line(img, (180, 340), (180 + corner_size, 340), (0, 214, 160), 3)
+        cv2.line(img, (180, 340), (180, 340 - corner_size), (0, 214, 160), 3)
+        cv2.line(img, (460, 340), (460 - corner_size, 340), (0, 214, 160), 3)
+        cv2.line(img, (460, 340), (460, 340 - corner_size), (0, 214, 160), 3)
         
         h, w, ch = img.shape
         qt_img = QImage(img.data, w, h, ch * w, QImage.Format.Format_RGB888)
