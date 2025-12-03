@@ -7,7 +7,7 @@ from ultralytics import YOLO
 # ================== CẦN SỬA CHO PHÙ HỢP MÁY BẠN ==================
 
 # Đường dẫn tới model đã train xong (best.pt)
-MODEL_PATH = r"ai/runs/6_class_model/yolov12_trash_detection/weights/best.pt"
+MODEL_PATH = r"ai/runs/yolov12_trash_detection/weights/best.pt"
 
 # Chọn chế độ test: "image", "folder", "video", "webcam"
 MODE = "webcam"

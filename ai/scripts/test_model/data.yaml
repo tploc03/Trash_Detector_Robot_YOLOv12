@@ -1,0 +1,15 @@
+path: D:/LocTP/6_class_dataset_v7
+
+train: images/train
+val: images/val
+test: images/test
+
+nc: 6
+
+names:
+  0: battery
+  1: glass
+  2: metal
+  3: organic
+  4: paper_cardboard
+  5: plastic
