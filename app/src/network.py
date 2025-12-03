@@ -6,12 +6,12 @@ from PyQt6.QtCore import QThread, pyqtSignal
 class NetworkThread(QThread):
     data_received = pyqtSignal(dict) 
 
-    def __init__(self, port=9999):
+    def __init__(self, target_ip, port=9999):
         super().__init__()
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.bind(("0.0.0.0", port))
         self.sock.settimeout(0.05)
-        self.target_ip = "192.168.1.15" # Default
+        self.target_ip = target_ip  # IP of ESP32 robot
         self.target_port = 8888
         self.running = True
 
@@ -29,7 +29,7 @@ class NetworkThread(QThread):
             msg = json.dumps(cmd_dict).encode()
             self.sock.sendto(msg, (self.target_ip, self.target_port))
         except Exception as e:
-            print(f"Error: {e}")
+            print(f"❌ Network Error: {e}")
 
     def stop(self):
         self.running = False

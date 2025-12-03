@@ -123,107 +123,121 @@ class SettingsPanel(QWidget):
         super().__init__()
         self.app = parent_app
         layout = QVBoxLayout(self)
-        layout.setSpacing(20)
+        layout.setSpacing(15)
+        layout.setContentsMargins(20, 20, 20, 20)
 
-        # 1. SYSTEM CONFIGURATION
-        grp_param = QGroupBox("⚙ SYSTEM CONFIGURATION")
+        # 1. NETWORK SETTINGS
+        grp_param = QGroupBox("🌐 NETWORK SETTINGS")
         form = QFormLayout()
-        form.setLabelAlignment(Qt.AlignmentFlag.AlignLeft)
-        form.setVerticalSpacing(15) # Khoảng cách giữa các dòng
-        form.setHorizontalSpacing(15)
+        form.setSpacing(12)
+        form.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
         
-        # IP Address
-        self.txt_ip = QLineEdit("192.168.1.15")
+        # Robot IP
+        lbl_r_ip = QLabel("Robot IP:")
+        lbl_r_ip.setStyleSheet(f"color: {TEXT_SECONDARY}; font-weight: 600;")
+        self.txt_robot_ip = QLineEdit()
+        self.txt_robot_ip.setText("192.168.1.100")
+        self.txt_robot_ip.setMinimumWidth(250)
+        self.txt_robot_ip.setStyleSheet(f"""
+            QLineEdit {{
+                padding: 8px;
+                border: 1px solid {PRIMARY_COLOR};
+                border-radius: 5px;
+                background-color: #1e1e1e;
+                color: #fff;
+                font-size: 12px;
+            }}
+            QLineEdit:focus {{
+                border: 2px solid {PRIMARY_COLOR};
+            }}
+        """)
         
-        # Speed Slider with live value
+        # Camera IP
+        lbl_c_ip = QLabel("Camera IP:")
+        lbl_c_ip.setStyleSheet(f"color: {TEXT_SECONDARY}; font-weight: 600;")
+        self.txt_cam_ip = QLineEdit()
+        self.txt_cam_ip.setText("http://192.168.1.20:81/stream")
+        self.txt_cam_ip.setMinimumWidth(250)
+        self.txt_cam_ip.setStyleSheet(f"""
+            QLineEdit {{
+                padding: 8px;
+                border: 1px solid {PRIMARY_COLOR};
+                border-radius: 5px;
+                background-color: #1e1e1e;
+                color: #fff;
+                font-size: 12px;
+            }}
+            QLineEdit:focus {{
+                border: 2px solid {PRIMARY_COLOR};
+            }}
+        """)
+        
+        form.addRow(lbl_r_ip, self.txt_robot_ip)
+        form.addRow(lbl_c_ip, self.txt_cam_ip)
+        
+        # Motor Speed
         speed_container = QHBoxLayout()
         self.slider_speed = QSlider(Qt.Orientation.Horizontal)
         self.slider_speed.setRange(0, 255)
         self.slider_speed.setValue(200)
         self.lbl_speed = QLabel("200")
-        self.lbl_speed.setFixedWidth(50)
-        self.lbl_speed.setFont(QFont("Segoe UI", 11, QFont.Weight.Bold))
-        self.lbl_speed.setStyleSheet(f"color: {PRIMARY_COLOR};")
+        self.lbl_speed.setStyleSheet(f"color: {PRIMARY_COLOR}; font-weight: bold; min-width: 40px;")
         self.slider_speed.valueChanged.connect(lambda v: self.lbl_speed.setText(f"{v}"))
-        self.slider_speed.valueChanged.connect(self.app.update_speed_var)
         speed_container.addWidget(self.slider_speed)
         speed_container.addWidget(self.lbl_speed)
-
-        # Confidence Slider with live value
+        form.addRow("Motor Speed:", speed_container)
+        
+        # AI Confidence
         conf_container = QHBoxLayout()
         self.slider_conf = QSlider(Qt.Orientation.Horizontal)
         self.slider_conf.setRange(10, 100)
         self.slider_conf.setValue(70)
         self.lbl_conf = QLabel("70%")
-        self.lbl_conf.setFixedWidth(50)
-        self.lbl_conf.setFont(QFont("Segoe UI", 11, QFont.Weight.Bold))
-        self.lbl_conf.setStyleSheet(f"color: {PRIMARY_COLOR};")
+        self.lbl_conf.setStyleSheet(f"color: {PRIMARY_COLOR}; font-weight: bold; min-width: 50px;")
         self.slider_conf.valueChanged.connect(lambda v: self.lbl_conf.setText(f"{v}%"))
         conf_container.addWidget(self.slider_conf)
         conf_container.addWidget(self.lbl_conf)
-
-        # Add rows with nice labels
-        lbl_ip = QLabel("Robot IP Address:")
-        lbl_ip.setStyleSheet(f"color: {TEXT_SECONDARY}; font-weight: 600;")
-        
-        lbl_sp = QLabel("Motor Speed:")
-        lbl_sp.setStyleSheet(f"color: {TEXT_SECONDARY}; font-weight: 600;")
-        
-        lbl_ai = QLabel("AI Confidence:")
-        lbl_ai.setStyleSheet(f"color: {TEXT_SECONDARY}; font-weight: 600;")
-
-        form.addRow(lbl_ip, self.txt_ip)
-        form.addRow(lbl_sp, speed_container)
-        form.addRow(lbl_ai, conf_container)
+        form.addRow("AI Confidence:", conf_container)
         
         grp_param.setLayout(form)
         layout.addWidget(grp_param)
-
-        # 2. ACTION BUTTONS
-        btn_layout = QHBoxLayout()
         
+        # 2. BUTTONS
+        btn_layout = QHBoxLayout()
         btn_save = QPushButton("APPLY SETTINGS")
         btn_save.setStyleSheet(BTN_STYLE)
-        btn_save.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_save.setMinimumHeight(40)
         btn_save.clicked.connect(self.apply_settings)
         btn_layout.addWidget(btn_save)
-        
-        btn_reset = QPushButton("↻ RESET")
-        btn_reset.setStyleSheet(BTN_SECONDARY)
-        btn_reset.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn_reset.clicked.connect(self.reset_settings)
-        btn_layout.addWidget(btn_reset)
-        
         layout.addLayout(btn_layout)
         
-        # Status message
+        # Msg
         self.lbl_msg = QLabel("")
         self.lbl_msg.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.lbl_msg.setFont(QFont("Segoe UI", 11))
-        self.lbl_msg.setStyleSheet("margin-top: 10px; padding: 8px; border-radius: 6px;")
+        self.lbl_msg.setStyleSheet(f"padding: 10px; border-radius: 6px;")
         layout.addWidget(self.lbl_msg)
-        
         layout.addStretch()
-
+        
+        self.setLayout(layout)
+    
     def apply_settings(self):
-        new_ip = self.txt_ip.text()
-        self.app.net_thread.target_ip = new_ip
-        
+        robot_ip = self.txt_robot_ip.text().strip()
+        cam_ip = self.txt_cam_ip.text().strip()
         conf = self.slider_conf.value() / 100.0
-        cmd = {
-            "cmd": "SET_CONFIG", 
-            "conf": conf,
-            "speed": self.slider_speed.value()
-        }
-        self.app.net_thread.send_command(cmd)
+        speed = self.slider_speed.value()
         
-        # Show success message
-        self.lbl_msg.setText(f"✓ Settings Applied Successfully\nIP: {new_ip} | Speed: {self.slider_speed.value()} | Confidence: {conf*100:.0f}%")
-        self.lbl_msg.setStyleSheet(f"color: #FFF; background: #0078D4; padding: 10px; border-radius: 6px; font-weight: 600;")
-
-    def reset_settings(self):
-        self.txt_ip.setText("192.168.1.15")
-        self.slider_speed.setValue(200)
-        self.slider_conf.setValue(70)
-        self.lbl_msg.setText("Settings reset to defaults")
-        self.lbl_msg.setStyleSheet(f"color: {TEXT_SECONDARY}; background: transparent; padding: 5px;")
+        # Kiểm tra input
+        if not robot_ip or not cam_ip:
+            self.lbl_msg.setText("❌ Vui lòng nhập đầy đủ IP!")
+            self.lbl_msg.setStyleSheet(f"color: #FFF; background: #E81123; padding: 10px; border-radius: 6px;")
+            return
+        
+        try:
+            self.app.update_system_config(robot_ip, cam_ip, conf, speed)
+            cmd = {"cmd": "SET_CONFIG", "conf": conf, "speed": speed}
+            self.app.net_thread.send_command(cmd)
+            self.lbl_msg.setText(f"✓ Đã lưu! Robot: {robot_ip}")
+            self.lbl_msg.setStyleSheet(f"color: #FFF; background: #0078D4; padding: 10px; border-radius: 6px;")
+        except Exception as e:
+            self.lbl_msg.setText(f"❌ Lỗi: {str(e)}")
+            self.lbl_msg.setStyleSheet(f"color: #FFF; background: #E81123; padding: 10px; border-radius: 6px;")
