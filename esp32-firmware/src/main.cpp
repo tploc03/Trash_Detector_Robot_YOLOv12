@@ -2,132 +2,210 @@
 #include <WiFi.h>
 #include <WiFiUdp.h>
 #include <ArduinoJson.h>
-#include "SonarManager.h" // Thêm thư viện vừa tạo
 
-// --- CẤU HÌNH WIFI & KẾT NỐI ---
-const char *ssid = "Nha Tro Kieu Trinh 2.4G"; // <--- ĐỔI LẠI
-const char *password = "88888888";            // <--- ĐỔI LẠI
+#include "SPIFFS.h"
+#include "AudioFileSourceSPIFFS.h"
+#include "AudioGeneratorWAV.h"
+#include "AudioOutputI2S.h"
+
+#include "SonarManager.h"
+
+const char *ssid = "Nha Tro Kieu Trinh 2.4G";
+const char *password = "88888888";
 const int localPort = 8888;
-IPAddress remoteIP; // Lưu IP của máy tính để gửi lại dữ liệu
-int remotePort = 0;
 
-// --- KHAI BÁO CHÂN MOTOR (GIỮ NGUYÊN) ---
-#define ENA       \
-  27;             \
-  #define IN1 33; \
-  #define IN2 32;
-#define IN3       \
-  16;             \
-  #define IN4 17; \
-  #define ENB 14;
-// (Bạn copy lại hàm setMotor từ code cũ vào đây nhé, tôi viết tắt cho gọn)
+#define ENA 27
+#define IN1 33
+#define IN2 32
+#define IN3 16
+#define IN4 17
+#define ENB 14
 
-// --- KHAI BÁO CẢM BIẾN (Theo sơ đồ của bạn) ---
-SonarManager sonarFront(18, 34); // Trig 18, Echo 34
-SonarManager sonarLeft(23, 35);  // Trig 23, Echo 35
-SonarManager sonarRight(5, 36);  // Trig 5,  Echo 36
+// Audio
+AudioGeneratorWAV *wav;
+AudioFileSourceSPIFFS *file;
+AudioOutputI2S *out;
 
+// Sensors (Trig, Echo)
+SonarManager sonarFront(18, 34);
+SonarManager sonarLeft(23, 35);
+SonarManager sonarRight(5, 36);
+
+// Network
 WiFiUDP udp;
-char packetBuffer[255];
+char packetBuffer[512];
 unsigned long lastSensorTime = 0;
+unsigned long lastCmdTime = 0;
 
-// --- COPY HÀM setMotor CŨ VÀO ĐÂY ---
-void setMotor(int pinIn1, int pinIn2, int pinEn, int speed)
+void setMotor(int speedL, int speedR)
 {
-  if (speed > 0)
+  if (speedL > 0)
   {
-    digitalWrite(pinIn1, HIGH);
-    digitalWrite(pinIn2, LOW);
+    digitalWrite(IN1, HIGH);
+    digitalWrite(IN2, LOW);
   }
-  else if (speed < 0)
+  else if (speedL < 0)
   {
-    digitalWrite(pinIn1, LOW);
-    digitalWrite(pinIn2, HIGH);
-    speed = -speed;
+    digitalWrite(IN1, LOW);
+    digitalWrite(IN2, HIGH);
+    speedL = -speedL;
   }
   else
   {
-    digitalWrite(pinIn1, LOW);
-    digitalWrite(pinIn2, LOW);
+    digitalWrite(IN1, LOW);
+    digitalWrite(IN2, LOW);
   }
-  if (speed > 255)
-    speed = 255;
-  analogWrite(pinEn, speed);
+
+  if (speedR > 0)
+  {
+    digitalWrite(IN3, HIGH);
+    digitalWrite(IN4, LOW);
+  }
+  else if (speedR < 0)
+  {
+    digitalWrite(IN3, LOW);
+    digitalWrite(IN4, HIGH);
+    speedR = -speedR;
+  }
+  else
+  {
+    digitalWrite(IN3, LOW);
+    digitalWrite(IN4, LOW);
+  }
+
+  analogWrite(ENA, constrain(speedL, 0, 255));
+  analogWrite(ENB, constrain(speedR, 0, 255));
+}
+
+void playSound(const char *filename)
+{
+  if (wav && wav->isRunning())
+  {
+    wav->stop();
+  }
+
+  file = new AudioFileSourceSPIFFS(filename);
+  if (!file->isOpen())
+  {
+    Serial.printf("Không tìm thấy file: %s\n", filename);
+    delete file;
+    return;
+  }
+
+  Serial.printf("Đang phát: %s\n", filename);
+  wav = new AudioGeneratorWAV();
+  wav->begin(file, out);
 }
 
 void setup()
 {
   Serial.begin(115200);
 
-  // Setup Motor
-  pinMode(27, OUTPUT);
-  pinMode(33, OUTPUT);
-  pinMode(32, OUTPUT);
-  pinMode(14, OUTPUT);
-  pinMode(16, OUTPUT);
-  pinMode(17, OUTPUT);
+  pinMode(ENA, OUTPUT);
+  pinMode(IN1, OUTPUT);
+  pinMode(IN2, OUTPUT);
+  pinMode(ENB, OUTPUT);
+  pinMode(IN3, OUTPUT);
+  pinMode(IN4, OUTPUT);
+  setMotor(0, 0);
 
-  // Setup Sensor
   sonarFront.begin();
   sonarLeft.begin();
   sonarRight.begin();
 
-  // Wifi
+  if (!SPIFFS.begin(true))
+  {
+    return;
+  }
+
+  out = new AudioOutputI2S(0, 1);
+  out->SetOutputModeMono(true);
+  out->SetGain(0.5);
+
+  Serial.print("Connecting Wifi");
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED)
+  {
     delay(500);
-  Serial.println(WiFi.localIP());
+    Serial.print(".");
+  }
+  Serial.println("\nWiFi Connected: " + WiFi.localIP().toString());
   udp.begin(localPort);
+
+  playSound("/startup.wav");
 }
 
 void loop()
 {
-  // 1. NHẬN LỆNH ĐIỀU KHIỂN (Code cũ)
+  if (wav && wav->isRunning())
+  {
+    if (!wav->loop())
+    {
+      wav->stop();
+      delete wav;
+      wav = NULL;
+      delete file;
+      file = NULL;
+    }
+  }
+
   int packetSize = udp.parsePacket();
   if (packetSize)
   {
-    remoteIP = udp.remoteIP(); // Lưu lại IP máy tính để gửi trả
-    remotePort = udp.remotePort();
-
-    int len = udp.read(packetBuffer, 255);
+    int len = udp.read(packetBuffer, 511);
     if (len > 0)
       packetBuffer[len] = 0;
 
     StaticJsonDocument<200> doc;
-    deserializeJson(doc, packetBuffer);
-    if (doc["cmd"] == "MOVE")
+    DeserializationError error = deserializeJson(doc, packetBuffer);
+
+    if (!error)
     {
-      setMotor(33, 32, 27, doc["L"]); // Cập nhật lại chân cho đúng
-      setMotor(16, 17, 14, doc["R"]);
+      lastCmdTime = millis();
+      const char *cmd = doc["cmd"];
+
+      if (strcmp(cmd, "MOVE") == 0)
+      {
+        int l = doc["L"];
+        int r = doc["R"];
+        setMotor(l, r);
+      }
+      else if (strcmp(cmd, "SPEAK") == 0)
+      {
+        const char *fname = doc["file"];
+        playSound(fname);
+      }
+      else if (strcmp(cmd, "STOP") == 0)
+      {
+        setMotor(0, 0);
+      }
     }
   }
 
-  // 2. GỬI DỮ LIỆU CẢM BIẾN VỀ MÁY TÍNH (Mỗi 100ms)
-  if (millis() - lastSensorTime > 200)
-  { // Tăng lên 200ms để đỡ spam
+  if (millis() - lastCmdTime > 2000)
+  {
+    setMotor(0, 0);
+  }
+
+  if (millis() - lastSensorTime > 150)
+  {
     lastSensorTime = millis();
 
-    // Đọc tuần tự và CÓ NGHỈ để tránh nhiễu chéo (Crosstalk)
-    float dFront = sonarFront.getDistance();
-    delay(15); // Chờ 15ms cho sóng trước tắt hẳn
+    float dF = sonarFront.getDistance();
+    float dL = sonarLeft.getDistance();
+    float dR = sonarRight.getDistance();
 
-    float dLeft = sonarLeft.getDistance();
-    delay(15);
-
-    float dRight = sonarRight.getDistance();
-
-    // Gói tin JSON gửi đi
     StaticJsonDocument<200> docOut;
-    docOut["F"] = (int)dFront;
-    docOut["L"] = (int)dLeft;
-    docOut["R"] = (int)dRight;
+    docOut["F"] = (int)dF;
+    docOut["L"] = (int)dL;
+    docOut["R"] = (int)dR;
 
     char outputBuffer[200];
     serializeJson(docOut, outputBuffer);
 
-    if (remotePort > 0)
-    { // Chỉ gửi khi đã biết IP máy tính
-      udp.beginPacket(remoteIP, remotePort);
+    if (udp.remotePort() > 0)
+    {
+      udp.beginPacket(udp.remoteIP(), udp.remotePort());
       udp.write((const uint8_t *)outputBuffer, strlen(outputBuffer));
       udp.endPacket();
     }
