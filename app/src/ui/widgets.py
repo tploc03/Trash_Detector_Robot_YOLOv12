@@ -1,7 +1,7 @@
 # ui/widgets.py
-from PyQt6.QtWidgets import QPushButton, QLabel, QFrame, QVBoxLayout
-from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QFont
+from PyQt6.QtWidgets import QPushButton, QLabel, QFrame, QVBoxLayout, QWidget, QGraphicsOpacityEffect
+from PyQt6.QtCore import Qt, pyqtSignal, QPropertyAnimation, QEasingCurve
+from PyQt6.QtGui import QFont, QColor, QPainter, QBrush
 
 class VisualKey(QPushButton):
     """Modern Visual Key Button - W, A, S, D Control"""
@@ -148,3 +148,53 @@ class SensorBox(QFrame):
                     padding: 8px;
                 }
             """)
+class LoadingOverlay(QWidget):
+    """Màn hình chờ chặn thao tác người dùng"""
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, False) # Chặn chuột
+        self.setAttribute(Qt.WidgetAttribute.WA_NoSystemBackground)
+        
+        # Layout
+        layout = QVBoxLayout(self)
+        layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        # Container
+        container = QFrame()
+        container.setStyleSheet("""
+            QFrame {
+                background-color: rgba(0, 0, 0, 200);
+                border-radius: 15px;
+                border: 2px solid #0078D4;
+            }
+        """)
+        container.setFixedSize(300, 150)
+        vbox = QVBoxLayout(container)
+        
+        # Label
+        self.lbl_text = QLabel("PROCESSING...")
+        self.lbl_text.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.lbl_text.setStyleSheet("color: white; font-weight: bold; font-size: 16px; background: transparent; border: none;")
+        
+        # Sub Label
+        self.lbl_sub = QLabel("Please wait for hardware...")
+        self.lbl_sub.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.lbl_sub.setStyleSheet("color: #CCC; font-size: 12px; background: transparent; border: none;")
+        
+        vbox.addWidget(self.lbl_text)
+        vbox.addWidget(self.lbl_sub)
+        layout.addWidget(container)
+        
+        self.hide()
+
+    def show_msg(self, title, sub=""):
+        self.lbl_text.setText(title)
+        self.lbl_sub.setText(sub)
+        self.resize(self.parent().size()) # Phủ kín màn hình cha
+        self.show()
+        self.raise_()
+
+    def paintEvent(self, event):
+        # Vẽ nền mờ tối
+        painter = QPainter(self)
+        painter.fillRect(self.rect(), QColor(0, 0, 0, 100))

@@ -21,20 +21,21 @@ const int localPort = 8888;
 #define IN4 17
 #define ENB 14
 
-// Audio
 AudioGeneratorWAV *wav;
 AudioFileSourceSPIFFS *file;
 AudioOutputI2S *out;
+bool isSpeaking = false;
 
-// Sensors (Trig, Echo)
 SonarManager sonarFront(18, 34);
 SonarManager sonarLeft(23, 35);
 SonarManager sonarRight(5, 36);
 
-// Network
+volatile int sharedDistF = 0;
+volatile int sharedDistL = 0;
+volatile int sharedDistR = 0;
+
 WiFiUDP udp;
 char packetBuffer[512];
-unsigned long lastSensorTime = 0;
 unsigned long lastCmdTime = 0;
 
 void setMotor(int speedL, int speedR)
@@ -82,19 +83,43 @@ void playSound(const char *filename)
   if (wav && wav->isRunning())
   {
     wav->stop();
+    isSpeaking = false;
   }
+
+  if (file)
+    delete file;
 
   file = new AudioFileSourceSPIFFS(filename);
   if (!file->isOpen())
   {
-    Serial.printf("Không tìm thấy file: %s\n", filename);
-    delete file;
+    Serial.printf("File missing: %s\n", filename);
     return;
   }
 
-  Serial.printf("Đang phát: %s\n", filename);
-  wav = new AudioGeneratorWAV();
+  Serial.printf("Playing: %s\n", filename);
+  if (!wav)
+    wav = new AudioGeneratorWAV();
+
   wav->begin(file, out);
+  isSpeaking = true;
+}
+
+void TaskSensors(void *pvParameters)
+{
+  (void)pvParameters;
+
+  for (;;)
+  {
+    int dF = (int)sonarFront.getDistance();
+    int dL = (int)sonarLeft.getDistance();
+    int dR = (int)sonarRight.getDistance();
+
+    sharedDistF = dF;
+    sharedDistL = dL;
+    sharedDistR = dR;
+
+    vTaskDelay(50 / portTICK_PERIOD_MS);
+  }
 }
 
 void setup()
@@ -115,22 +140,35 @@ void setup()
 
   if (!SPIFFS.begin(true))
   {
+    Serial.println("❌ SPIFFS Mount Failed");
     return;
   }
 
   out = new AudioOutputI2S(0, 1);
   out->SetOutputModeMono(true);
-  out->SetGain(0.5);
+  out->SetGain(0.6);
 
-  Serial.print("Connecting Wifi");
+  Serial.print("Connecting WiFi");
+  WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
-  while (WiFi.status() != WL_CONNECTED)
+  int retry = 0;
+  while (WiFi.status() != WL_CONNECTED && retry < 20)
   {
     delay(500);
     Serial.print(".");
+    retry++;
   }
-  Serial.println("\nWiFi Connected: " + WiFi.localIP().toString());
-  udp.begin(localPort);
+  if (WiFi.status() == WL_CONNECTED)
+  {
+    Serial.println("\n✓ WiFi Connected: " + WiFi.localIP().toString());
+    udp.begin(localPort);
+  }
+  else
+  {
+    Serial.println("\n❌ WiFi Failed (Will retry in loop)");
+  }
+
+  xTaskCreatePinnedToCore(TaskSensors, "Sensors", 4096, NULL, 1, NULL, 0);
 
   playSound("/startup.wav");
 }
@@ -142,11 +180,20 @@ void loop()
     if (!wav->loop())
     {
       wav->stop();
-      delete wav;
-      wav = NULL;
-      delete file;
-      file = NULL;
+      isSpeaking = false;
     }
+  }
+
+  if (WiFi.status() != WL_CONNECTED)
+  {
+    static unsigned long lastWifiCheck = 0;
+    if (millis() - lastWifiCheck > 5000 && !isSpeaking)
+    {
+      lastWifiCheck = millis();
+      Serial.println("Reconnecting WiFi...");
+      WiFi.reconnect();
+    }
+    return;
   }
 
   int packetSize = udp.parsePacket();
@@ -156,7 +203,7 @@ void loop()
     if (len > 0)
       packetBuffer[len] = 0;
 
-    StaticJsonDocument<200> doc;
+    StaticJsonDocument<256> doc;
     DeserializationError error = deserializeJson(doc, packetBuffer);
 
     if (!error)
@@ -166,14 +213,11 @@ void loop()
 
       if (strcmp(cmd, "MOVE") == 0)
       {
-        int l = doc["L"];
-        int r = doc["R"];
-        setMotor(l, r);
+        setMotor(doc["L"], doc["R"]);
       }
       else if (strcmp(cmd, "SPEAK") == 0)
       {
-        const char *fname = doc["file"];
-        playSound(fname);
+        playSound(doc["file"]);
       }
       else if (strcmp(cmd, "STOP") == 0)
       {
@@ -182,32 +226,29 @@ void loop()
     }
   }
 
-  if (millis() - lastCmdTime > 2000)
+  static unsigned long lastSendTime = 0;
+  if (millis() - lastSendTime > 150)
   {
-    setMotor(0, 0);
-  }
+    lastSendTime = millis();
 
-  if (millis() - lastSensorTime > 150)
-  {
-    lastSensorTime = millis();
+    StaticJsonDocument<128> docOut;
+    docOut["F"] = sharedDistF;
+    docOut["L"] = sharedDistL;
+    docOut["R"] = sharedDistR;
 
-    float dF = sonarFront.getDistance();
-    float dL = sonarLeft.getDistance();
-    float dR = sonarRight.getDistance();
-
-    StaticJsonDocument<200> docOut;
-    docOut["F"] = (int)dF;
-    docOut["L"] = (int)dL;
-    docOut["R"] = (int)dR;
-
-    char outputBuffer[200];
+    char outputBuffer[128];
     serializeJson(docOut, outputBuffer);
 
-    if (udp.remotePort() > 0)
+    if (udp.remoteIP() != IPAddress(0, 0, 0, 0) && udp.remotePort() > 0)
     {
       udp.beginPacket(udp.remoteIP(), udp.remotePort());
       udp.write((const uint8_t *)outputBuffer, strlen(outputBuffer));
       udp.endPacket();
     }
+  }
+
+  if (millis() - lastCmdTime > 2000)
+  {
+    setMotor(0, 0);
   }
 }

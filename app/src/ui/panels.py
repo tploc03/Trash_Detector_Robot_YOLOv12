@@ -25,20 +25,18 @@ class ManualPanel(QWidget):
         main_layout.addWidget(title)
         
         # Instruction
-        instr = QLabel("Use W, A, S, D or click buttons to move")
+        instr = QLabel("Only W, A, S, D are active")
         instr_font = QFont("Segoe UI", 10)
         instr.setFont(instr_font)
         instr.setStyleSheet(f"color: {TEXT_SECONDARY}; margin-bottom: 15px;")
         instr.setAlignment(Qt.AlignmentFlag.AlignCenter)
         main_layout.addWidget(instr)
         
-        # Tạo một container ở giữa để chứa các nút
+        # Container
         container = QWidget()
         container_layout = QVBoxLayout(container)
-        
-        # Grid phím
         grid = QGridLayout()
-        grid.setSpacing(12) # Khoảng cách giữa các nút
+        grid.setSpacing(12)
         
         self.btn_w = VisualKey("W", Qt.Key.Key_W)
         self.btn_a = VisualKey("A", Qt.Key.Key_A)
@@ -49,18 +47,15 @@ class ManualPanel(QWidget):
             btn.pressed.connect(lambda k=btn.key_code: self.app.on_gui_btn_press(k))
             btn.released.connect(lambda k=btn.key_code: self.app.on_gui_btn_release(k))
 
-        # Sắp xếp vị trí (Row, Col)
         grid.addWidget(self.btn_w, 0, 1)
         grid.addWidget(self.btn_a, 1, 0)
         grid.addWidget(self.btn_s, 1, 1)
         grid.addWidget(self.btn_d, 1, 2)
         
         container_layout.addLayout(grid)
-        
-        # --- CĂN GIỮA ---
-        main_layout.addStretch(1) # Đẩy từ trên xuống
-        main_layout.addWidget(container, alignment=Qt.AlignmentFlag.AlignCenter) # Widget ở giữa
-        main_layout.addStretch(1) # Đẩy từ dưới lên
+        main_layout.addStretch(1)
+        main_layout.addWidget(container, alignment=Qt.AlignmentFlag.AlignCenter)
+        main_layout.addStretch(1)
 
 class AutoPanel(QWidget):
     """Modern Auto Mode Panel - Real-time Detection Display"""
@@ -69,14 +64,12 @@ class AutoPanel(QWidget):
         layout = QVBoxLayout(self)
         layout.setSpacing(15)
         
-        # Header
         self.lbl_info = QLabel("AUTO MODE ACTIVE - SCANNING TRASH...")
         info_font = QFont("Segoe UI", 12, QFont.Weight.Bold)
         self.lbl_info.setFont(info_font)
         self.lbl_info.setStyleSheet(f"color: {PRIMARY_COLOR}; letter-spacing: 0.5px;")
         self.lbl_info.setAlignment(Qt.AlignmentFlag.AlignCenter)
         
-        # Status bar
         status_font = QFont("Segoe UI", 10)
         self.lbl_status = QLabel("Status: Ready | Items Detected: 0")
         self.lbl_status.setFont(status_font)
@@ -86,7 +79,6 @@ class AutoPanel(QWidget):
         layout.addWidget(self.lbl_info)
         layout.addWidget(self.lbl_status)
         
-        # Detection list
         self.list_detect = QListWidget()
         self.list_detect.setStyleSheet("""
             QListWidget {
@@ -94,15 +86,6 @@ class AutoPanel(QWidget):
                 border: 2px solid #ECECEC; 
                 border-radius: 12px;
                 padding: 8px;
-            }
-            QListWidget::item:hover {
-                background: #ECECEC;
-                border-radius: 8px;
-            }
-            QListWidget::item:selected {
-                background: #0078D4;
-                color: #FFF;
-                border-radius: 8px;
             }
         """)
         self.list_detect.setViewMode(QListWidget.ViewMode.IconMode)
@@ -127,53 +110,24 @@ class SettingsPanel(QWidget):
         layout.setContentsMargins(20, 20, 20, 20)
 
         # 1. NETWORK SETTINGS
-        grp_param = QGroupBox("🌐 NETWORK SETTINGS")
+        grp_param = QGroupBox("🌐 SYSTEM CONFIGURATION")
         form = QFormLayout()
         form.setSpacing(12)
-        form.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
         
         # Robot IP
-        lbl_r_ip = QLabel("Robot IP:")
-        lbl_r_ip.setStyleSheet(f"color: {TEXT_SECONDARY}; font-weight: 600;")
         self.txt_robot_ip = QLineEdit()
-        self.txt_robot_ip.setText("192.168.1.100")
-        self.txt_robot_ip.setMinimumWidth(250)
-        self.txt_robot_ip.setStyleSheet(f"""
-            QLineEdit {{
-                padding: 8px;
-                border: 1px solid {PRIMARY_COLOR};
-                border-radius: 5px;
-                background-color: #1e1e1e;
-                color: #fff;
-                font-size: 12px;
-            }}
-            QLineEdit:focus {{
-                border: 2px solid {PRIMARY_COLOR};
-            }}
-        """)
+        self.txt_robot_ip.setText("192.168.1.19") # Mặc định theo IP bạn hay test
+        self.txt_robot_ip.setPlaceholderText("Ex: 192.168.1.19")
+        self.txt_robot_ip.setStyleSheet(INPUT_STYLE)
         
         # Camera IP
-        lbl_c_ip = QLabel("Camera IP:")
-        lbl_c_ip.setStyleSheet(f"color: {TEXT_SECONDARY}; font-weight: 600;")
         self.txt_cam_ip = QLineEdit()
-        self.txt_cam_ip.setText("http://192.168.1.20:81/stream")
-        self.txt_cam_ip.setMinimumWidth(250)
-        self.txt_cam_ip.setStyleSheet(f"""
-            QLineEdit {{
-                padding: 8px;
-                border: 1px solid {PRIMARY_COLOR};
-                border-radius: 5px;
-                background-color: #1e1e1e;
-                color: #fff;
-                font-size: 12px;
-            }}
-            QLineEdit:focus {{
-                border: 2px solid {PRIMARY_COLOR};
-            }}
-        """)
+        self.txt_cam_ip.setText("http://192.168.1.19:81/stream")
+        self.txt_cam_ip.setPlaceholderText("Ex: http://192.168.1.19:81/stream")
+        self.txt_cam_ip.setStyleSheet(INPUT_STYLE)
         
-        form.addRow(lbl_r_ip, self.txt_robot_ip)
-        form.addRow(lbl_c_ip, self.txt_cam_ip)
+        form.addRow("🤖 Robot IP (ESP32):", self.txt_robot_ip)
+        form.addRow("📷 Camera URL:", self.txt_cam_ip)
         
         # Motor Speed
         speed_container = QHBoxLayout()
@@ -182,10 +136,11 @@ class SettingsPanel(QWidget):
         self.slider_speed.setValue(200)
         self.lbl_speed = QLabel("200")
         self.lbl_speed.setStyleSheet(f"color: {PRIMARY_COLOR}; font-weight: bold; min-width: 40px;")
+        # Chỉ cập nhật số hiển thị, KHÔNG cập nhật biến hệ thống
         self.slider_speed.valueChanged.connect(lambda v: self.lbl_speed.setText(f"{v}"))
         speed_container.addWidget(self.slider_speed)
         speed_container.addWidget(self.lbl_speed)
-        form.addRow("Motor Speed:", speed_container)
+        form.addRow("⚡ Motor Speed:", speed_container)
         
         # AI Confidence
         conf_container = QHBoxLayout()
@@ -194,19 +149,20 @@ class SettingsPanel(QWidget):
         self.slider_conf.setValue(70)
         self.lbl_conf = QLabel("70%")
         self.lbl_conf.setStyleSheet(f"color: {PRIMARY_COLOR}; font-weight: bold; min-width: 50px;")
+        # Chỉ cập nhật số hiển thị
         self.slider_conf.valueChanged.connect(lambda v: self.lbl_conf.setText(f"{v}%"))
         conf_container.addWidget(self.slider_conf)
         conf_container.addWidget(self.lbl_conf)
-        form.addRow("AI Confidence:", conf_container)
+        form.addRow("🧠 AI Confidence:", conf_container)
         
         grp_param.setLayout(form)
         layout.addWidget(grp_param)
         
         # 2. BUTTONS
         btn_layout = QHBoxLayout()
-        btn_save = QPushButton("APPLY SETTINGS")
+        btn_save = QPushButton("APPLY ALL SETTINGS")
         btn_save.setStyleSheet(BTN_STYLE)
-        btn_save.setMinimumHeight(40)
+        btn_save.setMinimumHeight(45)
         btn_save.clicked.connect(self.apply_settings)
         btn_layout.addWidget(btn_save)
         layout.addLayout(btn_layout)
@@ -214,30 +170,26 @@ class SettingsPanel(QWidget):
         # Msg
         self.lbl_msg = QLabel("")
         self.lbl_msg.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.lbl_msg.setStyleSheet(f"padding: 10px; border-radius: 6px;")
         layout.addWidget(self.lbl_msg)
         layout.addStretch()
         
         self.setLayout(layout)
     
     def apply_settings(self):
+        # Lấy dữ liệu
         robot_ip = self.txt_robot_ip.text().strip()
         cam_ip = self.txt_cam_ip.text().strip()
         conf = self.slider_conf.value() / 100.0
         speed = self.slider_speed.value()
         
-        # Kiểm tra input
         if not robot_ip or not cam_ip:
-            self.lbl_msg.setText("❌ Vui lòng nhập đầy đủ IP!")
-            self.lbl_msg.setStyleSheet(f"color: #FFF; background: #E81123; padding: 10px; border-radius: 6px;")
+            self.lbl_msg.setText("❌ Missing IP Address!")
+            self.lbl_msg.setStyleSheet("color: white; background: #DC3545; padding: 5px; border-radius: 4px;")
             return
+
+        # Gọi hàm update của App Main -> Hàm này sẽ kích hoạt Loading Overlay
+        self.app.apply_system_config(robot_ip, cam_ip, conf, speed)
         
-        try:
-            self.app.update_system_config(robot_ip, cam_ip, conf, speed)
-            cmd = {"cmd": "SET_CONFIG", "conf": conf, "speed": speed}
-            self.app.net_thread.send_command(cmd)
-            self.lbl_msg.setText(f"✓ Đã lưu! Robot: {robot_ip}")
-            self.lbl_msg.setStyleSheet(f"color: #FFF; background: #0078D4; padding: 10px; border-radius: 6px;")
-        except Exception as e:
-            self.lbl_msg.setText(f"❌ Lỗi: {str(e)}")
-            self.lbl_msg.setStyleSheet(f"color: #FFF; background: #E81123; padding: 10px; border-radius: 6px;")
+        # Hiển thị log tạm
+        self.lbl_msg.setText("✓ Settings Applied Successfully!")
+        self.lbl_msg.setStyleSheet("color: white; background: #0078D4; padding: 5px; border-radius: 4px;")

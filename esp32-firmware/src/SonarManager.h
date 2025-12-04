@@ -8,13 +8,12 @@ class SonarManager
 private:
     int trigPin;
     int echoPin;
-
     float readRaw();
 
 public:
     SonarManager(int trig, int echo);
     void begin();
-    float getDistance(); // cm
+    float getDistance();
 };
 
 #endif
