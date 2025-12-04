@@ -26,6 +26,11 @@ AudioFileSourceSPIFFS *file;
 AudioOutputI2S *out;
 bool isSpeaking = false;
 
+// Sử dụng DAC nội của ESP32 (GPIO 25, GPIO 26)
+// GPIO 25: DAC1 (Left channel)
+// GPIO 26: DAC2 (Right channel)
+
+// CẤU HÌNH CẢM BIẾN
 SonarManager sonarFront(18, 34);
 SonarManager sonarLeft(23, 35);
 SonarManager sonarRight(5, 36);
@@ -80,44 +85,72 @@ void setMotor(int speedL, int speedR)
 
 void playSound(const char *filename)
 {
+  Serial.printf("🔊 Request: %s\n", filename);
+
+  // Stop current playback
   if (wav && wav->isRunning())
   {
+    Serial.println("Stopping current playback...");
     wav->stop();
+    delay(50);
     isSpeaking = false;
   }
 
+  // Cleanup
   if (file)
-    delete file;
-
-  file = new AudioFileSourceSPIFFS(filename);
-  if (!file->isOpen())
   {
-    Serial.printf("File missing: %s\n", filename);
+    file->close();
+    delete file;
+    file = NULL;
+  }
+
+  delay(50); // Important: delay between stop and play
+
+  String fullPath = filename;
+  if (!fullPath.startsWith("/"))
+    fullPath = "/" + fullPath;
+
+  Serial.printf("Opening: %s\n", fullPath.c_str());
+  file = new AudioFileSourceSPIFFS(fullPath.c_str());
+
+  if (!file || !file->isOpen())
+  {
+    Serial.printf("❌ Failed to open: %s\n", fullPath.c_str());
+    if (file)
+    {
+      file->close();
+      delete file;
+      file = NULL;
+    }
     return;
   }
 
-  Serial.printf("Playing: %s\n", filename);
+  Serial.println("Creating WAV decoder...");
   if (!wav)
     wav = new AudioGeneratorWAV();
 
-  wav->begin(file, out);
-  isSpeaking = true;
+  Serial.println("Starting playback...");
+  if (wav->begin(file, out))
+  {
+    isSpeaking = true;
+    Serial.printf("✓ Playing: %s\n", fullPath.c_str());
+  }
+  else
+  {
+    Serial.println("❌ Failed to begin playback");
+    isSpeaking = false;
+  }
 }
 
+// Tác vụ đọc cảm biến chạy riêng ở Core 0
 void TaskSensors(void *pvParameters)
 {
   (void)pvParameters;
-
   for (;;)
   {
-    int dF = (int)sonarFront.getDistance();
-    int dL = (int)sonarLeft.getDistance();
-    int dR = (int)sonarRight.getDistance();
-
-    sharedDistF = dF;
-    sharedDistL = dL;
-    sharedDistR = dR;
-
+    sharedDistF = (int)sonarFront.getDistance();
+    sharedDistL = (int)sonarLeft.getDistance();
+    sharedDistR = (int)sonarRight.getDistance();
     vTaskDelay(50 / portTICK_PERIOD_MS);
   }
 }
@@ -126,6 +159,7 @@ void setup()
 {
   Serial.begin(115200);
 
+  // 1. Motor Setup
   pinMode(ENA, OUTPUT);
   pinMode(IN1, OUTPUT);
   pinMode(IN2, OUTPUT);
@@ -134,20 +168,26 @@ void setup()
   pinMode(IN4, OUTPUT);
   setMotor(0, 0);
 
+  // 2. Sensor Setup
   sonarFront.begin();
   sonarLeft.begin();
   sonarRight.begin();
 
+  // 3. Audio Setup
   if (!SPIFFS.begin(true))
   {
     Serial.println("❌ SPIFFS Mount Failed");
     return;
   }
 
-  out = new AudioOutputI2S(0, 1);
+  Serial.println("Initializing DAC audio output (Internal)...");
+  // Dùng DAC nội của ESP32 thay vì I2S
+  out = new AudioOutputI2S(0, 1); // DAC mode
   out->SetOutputModeMono(true);
-  out->SetGain(0.6);
+  out->SetGain(1.0); // Max gain cho DAC
+  Serial.println("✓ DAC initialized");
 
+  // 4. WiFi Setup
   Serial.print("Connecting WiFi");
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
@@ -163,11 +203,8 @@ void setup()
     Serial.println("\n✓ WiFi Connected: " + WiFi.localIP().toString());
     udp.begin(localPort);
   }
-  else
-  {
-    Serial.println("\n❌ WiFi Failed (Will retry in loop)");
-  }
 
+  // 5. Start Sensor Task
   xTaskCreatePinnedToCore(TaskSensors, "Sensors", 4096, NULL, 1, NULL, 0);
 
   playSound("/startup.wav");
@@ -175,6 +212,7 @@ void setup()
 
 void loop()
 {
+  // 1. Audio Loop
   if (wav && wav->isRunning())
   {
     if (!wav->loop())
@@ -184,18 +222,19 @@ void loop()
     }
   }
 
+  // 2. WiFi Reconnect
   if (WiFi.status() != WL_CONNECTED)
   {
     static unsigned long lastWifiCheck = 0;
     if (millis() - lastWifiCheck > 5000 && !isSpeaking)
     {
       lastWifiCheck = millis();
-      Serial.println("Reconnecting WiFi...");
       WiFi.reconnect();
     }
     return;
   }
 
+  // 3. UDP Receive
   int packetSize = udp.parsePacket();
   if (packetSize)
   {
@@ -212,25 +251,19 @@ void loop()
       const char *cmd = doc["cmd"];
 
       if (strcmp(cmd, "MOVE") == 0)
-      {
         setMotor(doc["L"], doc["R"]);
-      }
       else if (strcmp(cmd, "SPEAK") == 0)
-      {
         playSound(doc["file"]);
-      }
       else if (strcmp(cmd, "STOP") == 0)
-      {
         setMotor(0, 0);
-      }
     }
   }
 
+  // 4. UDP Send Telemetry (Sensors)
   static unsigned long lastSendTime = 0;
   if (millis() - lastSendTime > 150)
   {
     lastSendTime = millis();
-
     StaticJsonDocument<128> docOut;
     docOut["F"] = sharedDistF;
     docOut["L"] = sharedDistL;
@@ -247,8 +280,7 @@ void loop()
     }
   }
 
+  // 5. Failsafe
   if (millis() - lastCmdTime > 2000)
-  {
     setMotor(0, 0);
-  }
 }

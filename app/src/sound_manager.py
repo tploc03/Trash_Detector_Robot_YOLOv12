@@ -6,15 +6,13 @@ class SoundManager:
     def __init__(self, net_thread):
         self.net_thread = net_thread
         self.last_played = 0
-        # Mapping tên rác (YOLO class) sang tên file wav (nếu khác nhau)
         self.trash_map = {
             "battery": "battery.wav",
             "glass": "glass.wav",
             "metal": "metal.wav",
             "organic": "organic.wav",
-            "paper": "paper.wav",
-            "plastic": "plastic.wav",
-            "paper_cardboard": "paper.wav" # Ví dụ map nhiều tên về 1 file
+            "paper_cardboard": "paper.wav",
+            "plastic": "plastic.wav"
         }
 
     def play_remote(self, filename):

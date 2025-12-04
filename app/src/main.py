@@ -181,10 +181,12 @@ class RobotApp(QMainWindow):
         self.show_loading("APPLIED MANUAL CONFIG", 800)
         self.sound.play_remote("setting.wav")
 
-    def apply_auto_config(self, speed, conf, time_val):
+    def apply_auto_config(self, speed, conf, time_val, turn_time=None):
         self.auto_speed = speed
         self.auto_conf = conf
         self.auto_fwd_time = time_val
+        if turn_time is not None:
+            self.auto_turn_time = turn_time
         # Nếu đang auto thì update ngay
         if self.is_auto:
             self.video_thread.update_conf(conf)

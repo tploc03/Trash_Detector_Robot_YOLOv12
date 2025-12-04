@@ -235,7 +235,21 @@ class SettingsPanel(QWidget):
         l3.addWidget(lbl_time_title)
         l3.addWidget(self.slider_auto_time)
         l3.addWidget(lbl_time)
-        # l3.addWidget(QLabel("s"))
+        
+        # Turn Duration (Thời gian quay)
+        l4 = QHBoxLayout()
+        lbl_turn_title = QLabel("Turn Duration:")
+        lbl_turn_title.setMinimumWidth(80)
+        self.slider_auto_turn_time = QSlider(Qt.Orientation.Horizontal)
+        self.slider_auto_turn_time.setRange(3, 30)  # 0.3 - 3.0 giây (x0.1)
+        self.slider_auto_turn_time.setValue(8)  # Mặc định 0.8 giây
+        lbl_turn_time = QLabel("0.8")
+        lbl_turn_time.setMinimumWidth(40)
+        lbl_turn_time.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self.slider_auto_turn_time.valueChanged.connect(lambda v: lbl_turn_time.setText(f"{v/10:.1f}"))
+        l4.addWidget(lbl_turn_title)
+        l4.addWidget(self.slider_auto_turn_time)
+        l4.addWidget(lbl_turn_time)
 
         btn = QPushButton("APPLY AUTO SETTINGS")
         btn.setStyleSheet(BTN_STYLE)
@@ -245,6 +259,7 @@ class SettingsPanel(QWidget):
         layout.addLayout(l1)
         layout.addLayout(l2)
         layout.addLayout(l3)
+        layout.addLayout(l4)
         layout.addStretch()
         layout.addWidget(btn)
         widget.setLayout(layout)
@@ -259,4 +274,5 @@ class SettingsPanel(QWidget):
         s = self.slider_auto_speed.value()
         c = self.slider_auto_conf.value() / 100.0
         t = self.slider_auto_time.value()
-        self.app.apply_auto_config(s, c, t)
+        turn_time = self.slider_auto_turn_time.value() / 10.0  # Chuyển từ 0-255 thành 0.0-25.5
+        self.app.apply_auto_config(s, c, t, turn_time)
