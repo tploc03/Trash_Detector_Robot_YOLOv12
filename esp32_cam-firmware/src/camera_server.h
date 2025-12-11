@@ -26,7 +26,7 @@ void startCameraServer()
             camera_fb_t *fb = esp_camera_fb_get();
             
             if (!fb) {
-                Serial.println("❌ Camera capture failed");
+                Serial.println("Camera capture failed");
                 delay(100);
                 continue;
             }
@@ -43,14 +43,14 @@ void startCameraServer()
             esp_camera_fb_return(fb);
             
             if (sent != fb->len) {
-                Serial.println("⚠️  Failed to send complete frame");
+                Serial.println("Failed to send complete frame");
                 break;
             }
             
             timeout++;
             if (timeout > 500) { // ~5 seconds
                 timeout = 0;
-                Serial.println("✓ Stream active...");
+                Serial.println("Stream active...");
             }
         }
         
@@ -79,7 +79,7 @@ void startCameraServer()
         server.send(200, "text/html", html); });
 
     server.begin();
-    Serial.println("✓ Camera server started on port 81");
+    Serial.println("Camera server started on port 81");
 }
 
 void handleCameraLoop()

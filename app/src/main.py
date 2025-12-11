@@ -1,82 +1,137 @@
-# main.py
+# main.py - FINAL STABLE VERSION
 import sys
 import os
-import time
+import requests
+import datetime
+import traceback # Thêm thư viện để báo lỗi
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QHBoxLayout, 
                             QVBoxLayout, QStackedWidget, QTabWidget, QLabel, 
-                            QGroupBox, QGridLayout, QPushButton)
+                            QGroupBox, QGridLayout, QPushButton, QSizePolicy,
+                            QMessageBox, QDialog)
 from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtGui import QPixmap, QIcon
+from PyQt6.QtGui import QPixmap, QFont, QIcon
 
-# Import modules (Đảm bảo bạn đã cập nhật network.py và video.py từ phần 1)
 from network import NetworkThread
 from styles import MAIN_THEME, BTN_STOP_STYLE
 from ui.widgets import SensorBox, LoadingOverlay
 from ui.panels import ManualPanel, AutoPanel, SettingsPanel
 from video import VideoThread
 from sound_manager import SoundManager
+from robot_controller import RobotController, RobotState
+
+# --- CƠ CHẾ BẮT LỖI TOÀN CỤC (QUAN TRỌNG) ---
+def exception_hook(exctype, value, tb):
+    """Hiện bảng lỗi thay vì tự tắt app"""
+    error_msg = "".join(traceback.format_exception(exctype, value, tb))
+    print("CRITICAL ERROR:", error_msg)
+    msg = QMessageBox()
+    msg.setIcon(QMessageBox.Icon.Critical)
+    msg.setText("Application Error")
+    msg.setInformativeText("An unexpected error occurred.")
+    msg.setDetailedText(error_msg)
+    msg.exec()
+    # sys.exit(1) # Tùy chọn: Có thể không thoát để debug
+
+sys.excepthook = exception_hook
+# ---------------------------------------------
+
+class DetectionCompleteDialog(QDialog):
+    """Dialog thông báo hoàn thành"""
+    def __init__(self, trash_name, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("🎯 Mission Complete")
+        self.setModal(True)
+        self.setFixedSize(400, 250)
+        self.setStyleSheet("""
+            QDialog { background-color: #FFFFFF; border: 2px solid #0078D4; border-radius: 10px; }
+            QLabel { color: #333; background: transparent; }
+            QPushButton {
+                background-color: #0078D4; color: white; border-radius: 6px;
+                padding: 10px 20px; font-weight: bold; font-size: 14px;
+            }
+            QPushButton:hover { background-color: #005A9E; }
+        """)
+        
+        layout = QVBoxLayout(self)
+        
+        lbl_icon = QLabel("✅")
+        lbl_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        lbl_icon.setStyleSheet("font-size: 48px;")
+        layout.addWidget(lbl_icon)
+        
+        lbl_title = QLabel(f"COLLECTED: {trash_name.upper()}")
+        lbl_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        lbl_title.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
+        layout.addWidget(lbl_title)
+        
+        time_str = datetime.datetime.now().strftime("%H:%M:%S")
+        lbl_time = QLabel(f"Time: {time_str}")
+        lbl_time.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(lbl_time)
+        
+        btn_ok = QPushButton("OK - Return to Manual")
+        btn_ok.clicked.connect(self.accept)
+        layout.addWidget(btn_ok)
 
 class RobotApp(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("YOLOv12 Trash Collector - Command Center")
+        # Fix lỗi icon: Kiểm tra file tồn tại mới set
+        icon_path = "app/resources/icons/rover.ico"
+        if os.path.exists(icon_path):
+            self.setWindowIcon(QIcon(icon_path))
+            
+        self.setWindowTitle("Trash Detector Robot - STABLE")
         self.resize(1280, 800)
         self.setStyleSheet(MAIN_THEME)
         
-        # --- 1. BIẾN HỆ THỐNG ---
-        # Config Manual
-        self.man_speed = 200
-        self.man_conf = 0.7
-        
-        # Config Auto
-        self.auto_speed = 180
-        self.auto_conf = 0.65
-        self.auto_fwd_time = 3 # giây
+        # --- CONFIG ---
+        self.man_speed = 80
+        self.auto_speed = 65
+        self.auto_conf = 0.20
         self.is_auto = False
         
-        # Logic Loop
-        self.patrol_state = 0 # 0: Forward, 1: Turn
-        self.patrol_timer_start = 0
         self.keys_pressed = set()
         self.is_processing = False
-        self.last_near_trash_alert = 0 # Tránh spam âm thanh "gần rác"
-
-        # AI Logic
-        self.trash_counter = 0      
-        self.current_trash = None   
-        self.is_trash_confirmed = False
         
-        # Paths
+        # Fix lỗi đường dẫn Model
         base_dir = os.path.dirname(os.path.abspath(__file__))
-        parent_dir = os.path.dirname(base_dir)
-        self.MODEL_PATH = os.path.join(parent_dir, "models", "best.pt")
+        # Giả sử cấu trúc: Project/app/src/main.py -> Model ở Project/app/models/best.pt
+        # parent_dir = app/src/.. = app
+        self.MODEL_PATH = os.path.join(base_dir, "..", "models", "best.pt")
+        # Fallback nếu chạy từ thư mục gốc
+        if not os.path.exists(self.MODEL_PATH):
+             self.MODEL_PATH = "app/models/best.pt"
 
-        # --- 2. KHỞI TẠO THREADS ---
-        # Network
-        self.net_thread = NetworkThread("192.168.1.19")
+        # --- CONTROLLER ---
+        self.robot = RobotController(base_speed=self.auto_speed, screen_width=640)
+
+        # --- THREADS ---
+        self.net_thread = NetworkThread("10.230.248.1")
         self.net_thread.data_received.connect(self.update_sensors)
         self.net_thread.ping_signal.connect(self.update_ping)
         self.net_thread.start()
         
-        # Sound
         self.sound = SoundManager(self.net_thread)
         
-        # Video
-        self.video_thread = VideoThread("http://192.168.1.19:81/stream", self.MODEL_PATH)
+        # Video Thread
+        self.video_thread = VideoThread("http://10.230.248.174:81/stream", self.MODEL_PATH)
         self.video_thread.change_pixmap_signal.connect(self.update_image)
-        self.video_thread.ai_results_signal.connect(self.handle_ai_logic)
+        self.video_thread.ai_results_signal.connect(self.handle_ai_detection)
         self.video_thread.fps_signal.connect(self.update_fps)
         self.video_thread.start()
 
-        # Timer chính cho Auto Mode (Chạy 50ms/lần để mượt)
-        self.loop_timer = QTimer()
-        self.loop_timer.timeout.connect(self.auto_loop_logic)
+        # Timers
+        self.auto_timer = QTimer()
+        self.auto_timer.timeout.connect(self.auto_control_loop)
 
-        # --- 3. UI SETUP ---
+        self.control_timer = QTimer()
+        self.control_timer.timeout.connect(self.send_manual_command)
+        self.control_timer.start(100)
+        
+        # UI
         self.setup_ui()
         self.loader = LoadingOverlay(self)
-        
-        # Âm thanh khởi động
         QTimer.singleShot(2000, self.sound.play_startup)
 
     def setup_ui(self):
@@ -84,48 +139,57 @@ class RobotApp(QMainWindow):
         self.setCentralWidget(central)
         main_lay = QHBoxLayout(central)
         
-        # --- CỘT TRÁI: CAMERA ---
+        # LEFT PANEL
         left_lay = QVBoxLayout()
-        
-        # Header FPS & Ping (Đưa lên trên theo yêu cầu)
         info_lay = QHBoxLayout()
         self.lbl_fps = QLabel("FPS: 0")
-        self.lbl_fps.setStyleSheet("color: #0F0; font-weight: bold; font-size: 14px;")
+        self.lbl_fps.setStyleSheet("color: #0078D4; font-weight: bold;")
         self.lbl_ping = QLabel("Ping: --")
-        self.lbl_ping.setStyleSheet("color: #FA0; font-weight: bold; font-size: 14px; margin-left: 15px;")
+        self.lbl_ping.setStyleSheet("color: #0078D4; font-weight: bold; margin-left: 15px;")
+        
+        # self.lbl_state = QLabel("IDLE")
+        # self.lbl_state.setStyleSheet("color: #888; font-weight: bold; margin-left: 15px; background: #222; padding: 2px 8px; border-radius: 4px;")
+
         info_lay.addWidget(self.lbl_fps)
         info_lay.addWidget(self.lbl_ping)
+        # info_lay.addWidget(self.lbl_state)
         info_lay.addStretch()
         left_lay.addLayout(info_lay)
 
-        # Video Frame
         self.lbl_video = QLabel("NO SIGNAL")
         self.lbl_video.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.lbl_video.setStyleSheet("background: #000; border: 2px solid #0078D4; color: #555;")
         self.lbl_video.setMinimumSize(640, 480)
+        self.lbl_video.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         left_lay.addWidget(self.lbl_video, 1)
+        
+        self.lbl_info = QLabel("System Ready")
+        self.lbl_info.setStyleSheet("background: #1E1E1E; color: #0FF; padding: 8px; border-radius: 5px;")
+        self.lbl_info.setWordWrap(True)
+        left_lay.addWidget(self.lbl_info)
         
         main_lay.addLayout(left_lay, 65)
 
-        # --- CỘT PHẢI: CONTROLS ---
+        # RIGHT PANEL
         right_lay = QVBoxLayout()
-        
-        # Sensors
-        grp_sens = QGroupBox("📡 RADAR")
-        g_lay = QGridLayout()
-        self.box_F = SensorBox("FRONT")
+        right_container = QWidget()
+        right_container.setLayout(right_lay)
+        right_container.setMinimumWidth(380)
+
+        # Sensor
+        grp_sens = QGroupBox("RADAR")
+        # ... (Giữ nguyên style) ...
+        grp_sens.setMinimumHeight(160)
+        g_lay = QHBoxLayout()
         self.box_L = SensorBox("LEFT")
+        self.box_F = SensorBox("FRONT")
         self.box_R = SensorBox("RIGHT")
-        g_lay.addWidget(self.box_F, 0, 1)
-        g_lay.addWidget(self.box_L, 1, 0)
-        g_lay.addWidget(self.box_R, 1, 2)
+        g_lay.addWidget(self.box_L); g_lay.addWidget(self.box_F); g_lay.addWidget(self.box_R)
         grp_sens.setLayout(g_lay)
         right_lay.addWidget(grp_sens)
         
-        # Tab điều khiển
+        # Tabs
         self.main_tabs = QTabWidget()
-        
-        # Tab 1: Operation
         tab_op = QWidget()
         op_lay = QVBoxLayout(tab_op)
         
@@ -143,204 +207,146 @@ class RobotApp(QMainWindow):
         op_lay.addWidget(self.stack)
         
         self.main_tabs.addTab(tab_op, "OPERATION")
-
-        # Tab 2: Settings (Giao diện mới)
         self.panel_set = SettingsPanel(self)
         self.main_tabs.addTab(self.panel_set, "SETTINGS")
-        
         right_lay.addWidget(self.main_tabs)
 
-        # Emergency Stop
-        btn_stop = QPushButton("🛑 EMERGENCY STOP (SPACE)")
+        btn_stop = QPushButton("EMERGENCY STOP (SPACE)")
         btn_stop.setStyleSheet(BTN_STOP_STYLE)
         btn_stop.clicked.connect(self.emergency_stop)
         right_lay.addWidget(btn_stop)
         
-        main_lay.addLayout(right_lay, 35)
+        main_lay.addWidget(right_container, 35)
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
 
-    # --- LOGIC: CẬP NHẬT SETTINGS ---
+    # --- SETTINGS ---
     def update_robot_ip(self, ip):
-        self.show_loading(f"CONNECTING ROBOT: {ip}...", 1000)
+        self.show_loading(f"ROBOT IP: {ip}", 1000)
         self.net_thread.update_target_ip(ip)
-        self.sound.play_remote("setting.wav")
 
     def update_cam_ip(self, url):
-        self.show_loading(f"CONNECTING CAM: {url}...", 2000)
+        self.show_loading(f"CAM URL: {url}", 1000)
         self.video_thread.update_source(url)
-        self.sound.play_remote("setting.wav")
 
-    def apply_manual_config(self, speed, conf):
+    def apply_manual_config(self, speed):
         self.man_speed = speed
-        self.man_conf = conf
-        # Nếu đang ở manual thì update ngay
-        if not self.is_auto:
-            self.video_thread.update_conf(conf)
-            self.net_thread.send_command({"cmd": "SET_CONFIG", "speed": speed})
-        
-        self.show_loading("APPLIED MANUAL CONFIG", 800)
-        self.sound.play_remote("setting.wav")
+        self.show_loading("MANUAL CONFIG SET", 800)
 
-    def apply_auto_config(self, speed, conf, time_val, turn_time=None):
+    def apply_auto_config(self, speed, conf, spin_enabled, scan_dur, wait_dur, verify_time):
         self.auto_speed = speed
         self.auto_conf = conf
-        self.auto_fwd_time = time_val
-        if turn_time is not None:
-            self.auto_turn_time = turn_time
-        # Nếu đang auto thì update ngay
+        self.robot.base_speed = speed
+        self.robot.SCAN_TURN_DURATION = scan_dur
+        self.robot.SCAN_WAIT_DURATION = wait_dur
+        self.robot.CONFIRM_TIME = verify_time
+        
         if self.is_auto:
             self.video_thread.update_conf(conf)
+            self.robot.enable_search(spin_enabled)
         
-        self.show_loading("APPLIED AUTO CONFIG", 800)
-        self.sound.play_remote("setting.wav")
+        self.show_loading("AUTO CONFIG APPLIED", 1000)
 
-    # --- LOGIC: CHUYỂN MODE ---
+    def toggle_flash(self, stream_url):
+        try:
+            base_url = stream_url.replace("/stream", "").split(":81")[0]
+            if not hasattr(self, 'flash_state'): self.flash_state = 0
+            self.flash_state = 1 - self.flash_state
+            
+            # Gửi request trong thread riêng hoặc dùng timeout cực ngắn
+            requests.get(f"{base_url}/control?var=flash&val={self.flash_state}", timeout=0.5)
+            self.show_loading(f"FLASH {'ON' if self.flash_state else 'OFF'}", 500)
+        except Exception:
+            self.show_loading("FLASH ERROR", 500)
+
+    # --- MODE CONTROL ---
     def request_toggle_mode(self):
-        checked = self.btn_mode.isChecked()
-        if checked:
-            self.show_loading("STARTING AUTO MODE...", 2000)
-            QTimer.singleShot(500, lambda: self.set_mode(True))
+        if self.btn_mode.isChecked():
+            self.set_mode(True)
         else:
-            self.show_loading("SWITCHING TO MANUAL...", 1000)
-            QTimer.singleShot(500, lambda: self.set_mode(False))
+            self.set_mode(False)
 
     def set_mode(self, auto):
         self.is_auto = auto
         self.video_thread.set_ai_mode(auto)
         
         if auto:
-            self.btn_mode.setText("⚙ AUTO RUNNING (CLICK TO STOP)")
+            self.control_timer.stop()
+            self.btn_mode.setText("AUTO MODE ACTIVE")
             self.btn_mode.setStyleSheet("background-color: #06D6A0; color: #000; font-weight: bold;")
             self.stack.setCurrentIndex(1)
-            self.sound.play_remote("auto.wav")
+            self.sound.play_auto()
             
-            # Setup Auto Params
+            # Config Robot
+            self.robot.state = RobotState.SEARCH_STEP if self.panel_set.chk_spin.isChecked() else RobotState.IDLE
+            self.robot.search_enabled = self.panel_set.chk_spin.isChecked()
+            self.robot.state_timer = __import__('time').time()
+            
             self.video_thread.update_conf(self.auto_conf)
-            self.patrol_state = 0 # Bắt đầu bằng đi thẳng
-            self.patrol_timer_start = time.time()
-            self.loop_timer.start(50) # Bắt đầu vòng lặp Logic
+            self.auto_timer.start(50)
         else:
+            self.auto_timer.stop()
+            self.control_timer.start(100)
             self.btn_mode.setText("SWITCH TO AUTO MODE")
             self.btn_mode.setStyleSheet("")
             self.stack.setCurrentIndex(0)
-            self.sound.play_remote("manual.wav")
-            
-            self.loop_timer.stop()
+            self.sound.play_manual()
             self.net_thread.send_command({"cmd": "STOP", "L": 0, "R": 0})
+            self.robot.emergency_stop()
 
-    # --- LOGIC: AUTO LOOP (QUAN TRỌNG) ---
-    def auto_loop_logic(self):
-        # Nếu đã tìm thấy rác -> Dừng logic tuần tra
-        if self.is_trash_confirmed: return
-
-        current_time = time.time()
-        elapsed = current_time - self.patrol_timer_start
-        
-        # 1. Kiểm tra cảm biến va chạm trước
-        dist_f = self.box_F.current_value
-        if 0 < dist_f < 30:
-            # Gặp vật cản gần -> Lùi lại ngay
-            self.net_thread.send_command({"cmd": "MOVE", "L": -150, "R": -150})
-            return
-
-        # 2. State Machine: Tiến -> Quay -> Tiến
-        if self.patrol_state == 0: # STATE: FORWARD
-            if elapsed < self.auto_fwd_time:
-                # Đi thẳng
-                s = self.auto_speed
-                self.net_thread.send_command({"cmd": "MOVE", "L": s, "R": s})
-            else:
-                # Hết giờ -> Chuyển sang Quay
-                self.net_thread.send_command({"cmd": "STOP", "L": 0, "R": 0})
-                self.patrol_state = 1
-                self.patrol_timer_start = current_time # Reset timer cho turn
-        
-        elif self.patrol_state == 1: # STATE: TURN 180
-            # Giả sử quay 180 độ mất khoảng 1.5 giây (cần tinh chỉnh thực tế)
-            turn_duration = 1.5 
-            if elapsed < turn_duration:
-                # Quay tại chỗ (Trái lùi, Phải tiến)
-                s = self.auto_speed
-                self.net_thread.send_command({"cmd": "MOVE", "L": -s, "R": s})
-            else:
-                # Quay xong -> Dừng -> Chuyển sang Tiến
-                self.net_thread.send_command({"cmd": "STOP", "L": 0, "R": 0})
-                self.patrol_state = 0
-                self.patrol_timer_start = current_time
-
-    # --- LOGIC: AI XỬ LÝ ---
-    def handle_ai_logic(self, result):
+    # --- AUTO LOOP ---
+    def auto_control_loop(self):
         if not self.is_auto: return
         
-        dets = result.get('detections', [])
-        if not dets:
-            self.trash_counter = 0
+        self.robot.update_sensors(self.box_F.current_value, self.box_L.current_value, self.box_R.current_value)
+        old_state = self.robot.state
+        L, R, info = self.robot.compute_control()
+        
+        # Logic âm thanh & UI
+        if old_state == RobotState.VERIFYING and self.robot.state == RobotState.ALIGNING:
+            label = self.robot.current_label
+            self.sound.play_trash_detect(label)
+            self.panel_auto.add_trash_item(label, datetime.datetime.now().strftime("%H:%M:%S"))
+        
+        self.lbl_info.setText(info)
+        self.panel_auto.lbl_info.setText(info)
+        
+        # Update State Label Color
+        self.lbl_state.setText(self.robot.state.value)
+        self.lbl_state.setStyleSheet(f"color: {self.robot.get_state_color()}; font-weight: bold; margin-left: 15px; background: #222; padding: 2px 8px; border-radius: 4px;")
+
+        if self.robot.state == RobotState.REACHED:
+            self.handle_trash_reached()
             return
+        
+        self.net_thread.send_command({"cmd": "MOVE", "L": int(L), "R": int(R)})
 
-        # Lấy vật thể có độ tin cậy cao nhất
-        best = max(dets, key=lambda x: x['conf'])
-        label = best['label']
-        
-        if label == self.current_trash:
-            self.trash_counter += 1
-        else:
-            self.current_trash = label
-            self.trash_counter = 1
-        
-        # Xác nhận rác (liên tiếp 5 frame)
-        if self.trash_counter >= 5 and not self.is_trash_confirmed:
-            self.start_trash_pickup_sequence(label)
-        
-        # Âm thanh cảnh báo khi xe đến gần rác (Sonar < 15cm)
-        if self.is_trash_confirmed:
-            dist = self.box_F.current_value
-            if 0 < dist < 15 and (time.time() - self.last_near_trash_alert > 5):
-                # Phát âm thanh "Gần rác" (Bạn cần có file near.wav hoặc tương tự)
-                # Tạm thời dùng beep ngắn
-                self.sound.play_remote("beep.wav") 
-                self.last_near_trash_alert = time.time()
-
-    def start_trash_pickup_sequence(self, label):
-        self.is_trash_confirmed = True
-        self.loop_timer.stop() # Dừng tuần tra
-        
-        # 1. Dừng xe & Phát hiện
-        self.net_thread.send_command({"cmd": "STOP", "L": 0, "R": 0})
-        self.sound.play_remote("detect.wav") # Âm thanh "Phát hiện rác"
-        self.show_loading(f"DETECTED: {label.upper()}", 1000)
-        
-        # 2. Nói tên rác (Sau 1.5s)
-        QTimer.singleShot(1500, lambda: self.sound.play_trash_detect(label))
-        
-        # 3. Thông báo "Đang đi tới rác" (Sau 3s)
-        QTimer.singleShot(3500, lambda: self.sound.play_remote("moving_to_trash.wav"))
-        
-        # 4. Logic lao vào rác (Đơn giản hóa: Tiến chậm trong 2s)
-        QTimer.singleShot(4000, lambda: self.net_thread.send_command({"cmd": "MOVE", "L": 120, "R": 120}))
-        
-        # 5. Kết thúc (Dừng sau 2s tiến)
-        QTimer.singleShot(6000, self.finish_trash_job)
-
-    def finish_trash_job(self):
-        self.net_thread.send_command({"cmd": "STOP", "L": 0, "R": 0})
-        self.sound.play_remote("done.wav") # Âm thanh chạm rác/hoàn thành
-        
-        # Ghi log
-        t_str = time.strftime("%H:%M:%S")
-        self.panel_auto.add_trash_item(f"COLLECTED: {self.current_trash}", t_str)
-        
-        # Quay lại tuần tra sau 3s
-        QTimer.singleShot(3000, self.resume_patrol)
-
-    def resume_patrol(self):
+    def handle_ai_detection(self, result):
         if self.is_auto:
-            self.is_trash_confirmed = False
-            self.trash_counter = 0
-            self.patrol_state = 0 # Reset về đi thẳng
-            self.patrol_timer_start = time.time()
-            self.loop_timer.start(50)
+            self.robot.update_detection(result.get('detections', []))
 
-    # --- UTILS ---
+    def handle_trash_reached(self):
+        """Xử lý khi đến đích an toàn"""
+        self.auto_timer.stop()
+        self.net_thread.send_command({"cmd": "STOP", "L": 0, "R": 0})
+        self.sound.play_done()
+        
+        trash_name = self.robot.current_label
+        
+        # Dùng QTimer để hiển thị Dialog sau 1 chút để tránh kẹt UI
+        QTimer.singleShot(200, lambda: self.show_completion_dialog(trash_name))
+
+    def show_completion_dialog(self, trash_name):
+        dialog = DetectionCompleteDialog(trash_name, self)
+        result = dialog.exec()
+        
+        # Sau khi đóng dialog, chuyển về Manual
+        self.switch_to_manual_after_detection()
+
+    def switch_to_manual_after_detection(self):
+        self.set_mode(False) # Gọi hàm set_mode để reset sạch sẽ
+        self.lbl_info.setText("Mission Complete - Switched to Manual")
+
+    # --- SENSORS & MANUAL ---
     def update_sensors(self, data):
         if "F" in data: self.box_F.update_val(data["F"])
         if "L" in data: self.box_L.update_val(data["L"])
@@ -348,15 +354,48 @@ class RobotApp(QMainWindow):
 
     def update_ping(self, ping_str):
         self.lbl_ping.setText(f"Ping: {ping_str}")
-        if "TIMEOUT" in ping_str: self.lbl_ping.setStyleSheet("color: #F00;")
-        else: self.lbl_ping.setStyleSheet("color: #0F0;")
 
     def update_image(self, img):
+        if not self.lbl_video.isVisible(): return
         scaled = img.scaled(self.lbl_video.size(), Qt.AspectRatioMode.KeepAspectRatio)
         self.lbl_video.setPixmap(QPixmap.fromImage(scaled))
 
     def update_fps(self, fps):
         self.lbl_fps.setText(f"FPS: {fps}")
+
+    def keyPressEvent(self, e):
+        if not e.isAutoRepeat(): self.handle_key(e.key(), True)
+    def keyReleaseEvent(self, e):
+        if not e.isAutoRepeat(): self.handle_key(e.key(), False)
+    
+    def handle_key(self, key, pressed):
+        if key == Qt.Key.Key_Space: 
+            if pressed: self.emergency_stop()
+            return
+        
+        valid = [Qt.Key.Key_W, Qt.Key.Key_A, Qt.Key.Key_S, Qt.Key.Key_D]
+        if key in valid:
+            if pressed: self.keys_pressed.add(key)
+            elif key in self.keys_pressed: self.keys_pressed.remove(key)
+            
+            self.panel_man.btn_w.set_active(Qt.Key.Key_W in self.keys_pressed)
+            self.panel_man.btn_a.set_active(Qt.Key.Key_A in self.keys_pressed)
+            self.panel_man.btn_s.set_active(Qt.Key.Key_S in self.keys_pressed)
+            self.panel_man.btn_d.set_active(Qt.Key.Key_D in self.keys_pressed)
+
+    def send_manual_command(self):
+        if self.is_auto: return
+        speed = self.man_speed
+        t, s = 0, 0
+        if Qt.Key.Key_W in self.keys_pressed: t += speed
+        if Qt.Key.Key_S in self.keys_pressed: t -= speed
+        if Qt.Key.Key_A in self.keys_pressed: s -= speed
+        if Qt.Key.Key_D in self.keys_pressed: s += speed
+        
+        # Mixer đơn giản
+        L = max(-255, min(255, t + s))
+        R = max(-255, min(255, t - s))
+        self.net_thread.send_command({"cmd": "MOVE", "L": int(L), "R": int(R)})
 
     def show_loading(self, msg, duration):
         self.is_processing = True
@@ -370,58 +409,18 @@ class RobotApp(QMainWindow):
         self.is_processing = False
         self.setFocus()
 
-    # Input Keyboard (Giữ nguyên logic cũ)
-    def keyPressEvent(self, e):
-        if not e.isAutoRepeat() and not self.is_processing: self.handle_key(e.key(), True)
-    def keyReleaseEvent(self, e):
-        if not e.isAutoRepeat() and not self.is_processing: self.handle_key(e.key(), False)
-    
-    def handle_key(self, key, pressed):
-        if key == Qt.Key.Key_Space: 
-            if pressed: self.emergency_stop()
-            return
-        if self.is_auto: return
-        
-        valid = [Qt.Key.Key_W, Qt.Key.Key_A, Qt.Key.Key_S, Qt.Key.Key_D]
-        if key not in valid: return
-        
-        if pressed: self.keys_pressed.add(key)
-        elif key in self.keys_pressed: self.keys_pressed.remove(key)
-        
-        # Update Visual
-        self.panel_man.btn_w.set_active(Qt.Key.Key_W in self.keys_pressed)
-        self.panel_man.btn_a.set_active(Qt.Key.Key_A in self.keys_pressed)
-        self.panel_man.btn_s.set_active(Qt.Key.Key_S in self.keys_pressed)
-        self.panel_man.btn_d.set_active(Qt.Key.Key_D in self.keys_pressed)
-
-        L, R = 0, 0
-        s = self.man_speed
-        if Qt.Key.Key_W in self.keys_pressed: L=s; R=s
-        elif Qt.Key.Key_S in self.keys_pressed: L=-s; R=-s
-        elif Qt.Key.Key_A in self.keys_pressed: L=-s; R=s
-        elif Qt.Key.Key_D in self.keys_pressed: L=s; R=-s
-        
-        self.net_thread.send_command({"cmd": "MOVE", "L": L, "R": R})
-
-    def on_gui_btn_press(self, k): self.handle_key(k, True)
-    def on_gui_btn_release(self, k): self.handle_key(k, False)
-
     def emergency_stop(self):
-        self.loop_timer.stop()
-        self.is_auto = False
-        self.btn_mode.setChecked(False)
-        self.btn_mode.setText("SWITCH TO AUTO MODE")
-        self.btn_mode.setStyleSheet("")
-        self.stack.setCurrentIndex(0)
-        
+        self.set_mode(False) # Reset về Manual an toàn
         for _ in range(3):
             self.net_thread.send_command({"cmd": "STOP", "L": 0, "R": 0})
-        
-        self.show_loading("🚨 EMERGENCY STOP!", 1000)
+        self.show_loading("EMERGENCY STOP!", 1000)
 
     def closeEvent(self, e):
-        self.video_thread.stop()
-        self.net_thread.stop()
+        if hasattr(self, 'net_thread'):
+            self.net_thread.send_command({"cmd": "STOP", "L": 0, "R": 0})
+            self.net_thread.stop()
+        if hasattr(self, 'video_thread'):
+            self.video_thread.stop()
         e.accept()
 
 if __name__ == "__main__":

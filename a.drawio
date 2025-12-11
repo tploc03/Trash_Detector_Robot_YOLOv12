@@ -1,0 +1,61 @@
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0" version="29.1.1">
+  <diagram id="aattn_yolov12" name="AATTN-YOLOv12">
+    <mxGraphModel dx="2167" dy="1049" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="input" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=center;" value="Input Image" vertex="1">
+          <mxGeometry height="40" width="140" x="-198" y="89" as="geometry" />
+        </mxCell>
+        <mxCell id="backbone" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=center;fillColor=#f5f5f5;strokeColor=#999999;" value="Backbone" vertex="1">
+          <mxGeometry height="220" width="300" x="4" y="-3" as="geometry" />
+        </mxCell>
+        <mxCell id="conv" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=center;" value="Convolutional Layers" vertex="1">
+          <mxGeometry height="40" width="180" x="64" y="27" as="geometry" />
+        </mxCell>
+        <mxCell id="ablock" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=center;" value="Area-Attention Blocks&#xa;(ABlock)" vertex="1">
+          <mxGeometry height="50" width="180" x="64" y="82" as="geometry" />
+        </mxCell>
+        <mxCell id="downsample" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=center;" value="Downsampling Layers" vertex="1">
+          <mxGeometry height="40" width="180" x="64" y="147" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow1" edge="1" parent="1" source="input" target="backbone">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="neck" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=center;fillColor=#f5f5f5;strokeColor=#999999;" value="Neck" vertex="1">
+          <mxGeometry height="220" width="300" x="384" y="-3" as="geometry" />
+        </mxCell>
+        <mxCell id="fusion" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=center;" value="Feature Fusion" vertex="1">
+          <mxGeometry height="40" width="180" x="444" y="27" as="geometry" />
+        </mxCell>
+        <mxCell id="a2c2f" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=center;" value="Attention-Enhanced CSP&#xa;Blocks (A2C2F)" vertex="1">
+          <mxGeometry height="50" width="180" x="444" y="82" as="geometry" />
+        </mxCell>
+        <mxCell id="spp" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=center;" value="Spatial Pyramid Pooling" vertex="1">
+          <mxGeometry height="40" width="180" x="444" y="147" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow2" edge="1" parent="1" source="backbone" target="neck">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="head" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=center;fillColor=#f5f5f5;strokeColor=#999999;" value="Head" vertex="1">
+          <mxGeometry height="180" width="300" x="746" y="19" as="geometry" />
+        </mxCell>
+        <mxCell id="task" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=center;" value="Task-Specific Heads" vertex="1">
+          <mxGeometry height="40" width="180" x="806" y="49" as="geometry" />
+        </mxCell>
+        <mxCell id="dfl" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=center;" value="Distribution Focal Loss (DFL)" vertex="1">
+          <mxGeometry height="40" width="180" x="806" y="104" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow3" edge="1" parent="1" source="neck" target="head">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="result" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=center;" value="Detection Results" vertex="1">
+          <mxGeometry height="40" width="180" x="1119" y="87" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow4" edge="1" parent="1" source="head" target="result">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

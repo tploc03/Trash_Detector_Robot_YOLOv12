@@ -2,25 +2,25 @@ import os
 import shutil
 import random
 
-LABEL_DIR = "ai/data/label_v7"
+LABEL_DIR = "ai/data/real_labels"
 
 # Thư mục ảnh
-IMAGE_DIR = "ai/data/new-dataset-trash-type-v7"
+IMAGE_DIR = "ai/data/real_dataset"
 
-OUTPUT_DIR = "ai/data/6_class_dataset_v7"
+OUTPUT_DIR = "ai/data/real_dataset_yolo"
 
 CLASSES = [
     "battery",
     "glass",
     "metal",
-    "organic",
+    # "organic",
     "paper_cardboard",
     "plastic"
 ]
 
-TRAIN_RATIO = 0.75
+TRAIN_RATIO = 0.8
 VAL_RATIO = 0.2
-TEST_RATIO = 0.05
+# TEST_RATIO = 0.05
 
 def ensure_dirs():
     for split in ["train", "val", "test"]:

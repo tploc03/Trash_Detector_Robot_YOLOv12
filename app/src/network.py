@@ -1,64 +1,65 @@
-# network.py
+# network.py - SAFE PORT BINDING
 import socket
 import json
 import time
-import subprocess
-import platform
 from PyQt6.QtCore import QThread, pyqtSignal
 
 class NetworkThread(QThread):
     data_received = pyqtSignal(dict) 
-    ping_signal = pyqtSignal(str) # Signal gửi Ping về UI
+    ping_signal = pyqtSignal(str) 
 
     def __init__(self, target_ip, port=9999):
         super().__init__()
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.sock.bind(("0.0.0.0", port))
-        self.sock.settimeout(0.1)
+        
+        # --- FIX LỖI KẸT CỔNG (Bind Error) ---
+        bound = False
+        while not bound:
+            try:
+                self.sock.bind(("0.0.0.0", port))
+                bound = True
+                print(f"✅ Socket bound to port {port}")
+            except OSError:
+                print(f"⚠️ Port {port} is busy. Trying {port + 1}...")
+                port += 1 # Tự động nhảy sang cổng tiếp theo
+                if port > 10050: # Giới hạn thử
+                    print("❌ Could not bind any port!")
+                    break
+        # -------------------------------------
+
+        self.sock.settimeout(0.1) 
         self.target_ip = target_ip 
         self.target_port = 8888
         self.running = True
-        
-        # Timer ảo để đo ping định kỳ
-        self.last_ping_time = 0
+        self.last_packet_time = 0 
 
     def run(self):
+        print("✅ Network Thread Started")
         while self.running:
-            # 1. Nhận dữ liệu cảm biến
             try:
-                data, _ = self.sock.recvfrom(1024)
-                msg = json.loads(data.decode())
-                self.data_received.emit(msg)
+                data, addr = self.sock.recvfrom(1024)
+                
+                # Tính Ping
+                now = time.time()
+                if self.last_packet_time != 0:
+                    delta_ms = int((now - self.last_packet_time) * 1000)
+                    self.ping_signal.emit(f"{delta_ms}ms")
+                self.last_packet_time = now
+
+                try:
+                    msg = json.loads(data.decode())
+                    self.data_received.emit(msg)
+                except json.JSONDecodeError:
+                    pass # Bỏ qua gói tin lỗi
+                
             except socket.timeout:
-                pass
+                pass 
+            except OSError:
+                break 
             except Exception as e:
                 print(f"Net Error: {e}")
-
-            # 2. Thực hiện Ping mỗi 2 giây (Chạy background)
-            if time.time() - self.last_ping_time > 2.0:
-                self.measure_ping()
-                self.last_ping_time = time.time()
-
-    def measure_ping(self):
-        # Dùng lệnh ping của hệ điều hành để không chặn socket UDP
-        param = '-n' if platform.system().lower() == 'windows' else '-c'
-        command = ['ping', param, '1', self.target_ip]
         
-        try:
-            # Chạy lệnh ping, timeout cực ngắn (500ms) để ko đơ
-            start = time.time()
-            res = subprocess.run(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=0.5)
-            end = time.time()
-            
-            if res.returncode == 0:
-                ms = int((end - start) * 1000)
-                # Trừ bớt overhead của python process (~20ms)
-                ms = max(1, ms - 10) 
-                self.ping_signal.emit(f"{ms}ms")
-            else:
-                self.ping_signal.emit("TIMEOUT")
-        except:
-             self.ping_signal.emit("ERR")
+        print("🛑 Network Thread Exited")
 
     def send_command(self, cmd_dict):
         try:
@@ -72,5 +73,6 @@ class NetworkThread(QThread):
 
     def stop(self):
         self.running = False
-        self.sock.close()
-        self.wait()
+        if self.sock:
+            self.sock.close()
+        self.wait(1000)

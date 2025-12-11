@@ -13,37 +13,21 @@ void SonarManager::begin()
     digitalWrite(trigPin, LOW);
 }
 
-float SonarManager::readRaw()
+float SonarManager::getDistance()
 {
+    // 1. Tạo xung Trigger ngắn gọn
     digitalWrite(trigPin, LOW);
     delayMicroseconds(2);
     digitalWrite(trigPin, HIGH);
     delayMicroseconds(10);
     digitalWrite(trigPin, LOW);
 
-    long duration = pulseIn(echoPin, HIGH, 12000);
+    // 2. Đọc xung Echo với Timeout ngắn (5800us ~ 1 mét)
+    // Nếu quá 1m coi như không có vật cản để tiết kiệm thời gian CPU
+    long duration = pulseIn(echoPin, HIGH, 5800);
 
     if (duration == 0)
-        return 999;
+        return 100; // Trả về 100cm nếu không thấy gì (an toàn)
+
     return duration * 0.034 / 2;
-}
-
-float SonarManager::getDistance()
-{
-    float samples[3];
-
-    for (int i = 0; i < 3; i++)
-    {
-        samples[i] = readRaw();
-        delay(2);
-    }
-
-    if (samples[0] > samples[1])
-        std::swap(samples[0], samples[1]);
-    if (samples[1] > samples[2])
-        std::swap(samples[1], samples[2]);
-    if (samples[0] > samples[1])
-        std::swap(samples[0], samples[1]);
-
-    return samples[1];
 }

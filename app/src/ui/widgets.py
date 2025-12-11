@@ -1,7 +1,7 @@
-# ui/widgets.py
-from PyQt6.QtWidgets import QPushButton, QLabel, QFrame, QVBoxLayout, QWidget, QGraphicsOpacityEffect
-from PyQt6.QtCore import Qt, pyqtSignal, QPropertyAnimation, QEasingCurve
-from PyQt6.QtGui import QFont, QColor, QPainter, QBrush
+# ui/widgets.py - FIXED VERSION
+from PyQt6.QtWidgets import QPushButton, QLabel, QFrame, QVBoxLayout, QWidget, QProgressBar
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QFont, QColor, QPainter
 
 class VisualKey(QPushButton):
     """Modern Visual Key Button - W, A, S, D Control"""
@@ -11,11 +11,9 @@ class VisualKey(QPushButton):
         self.setFixedSize(80, 80)
         self.is_active = False
         
-        # Modern Font
         font = QFont("Segoe UI", 20, QFont.Weight.Bold)
         self.setFont(font)
         
-        # Inactive State
         self.update_appearance(False)
 
     def set_active(self, active):
@@ -24,7 +22,6 @@ class VisualKey(QPushButton):
 
     def update_appearance(self, active):
         if active:
-            # Active: Windows Blue
             self.setStyleSheet("""
                 QPushButton { 
                     background-color: #0078D4; 
@@ -33,13 +30,12 @@ class VisualKey(QPushButton):
                     border-radius: 12px; 
                     font-weight: bold;
                 }
-                QPushButton:pressed {{ 
+                QPushButton:pressed { 
                     background-color: #005A9E; 
                     border: 2px solid #FFF;
-                }}
+                }
             """)
         else:
-            # Inactive: Light Gray with subtle border
             self.setStyleSheet("""
                 QPushButton { 
                     background-color: #F5F5F5; 
@@ -48,119 +44,116 @@ class VisualKey(QPushButton):
                     border-radius: 12px; 
                     font-weight: bold;
                 }
-                QPushButton:hover {{ 
+                QPushButton:hover { 
                     background-color: #ECECEC;
                     color: #000000;
                     border: 2px solid #0078D4;
-                }}
-                QPushButton:pressed {{ 
+                }
+                QPushButton:pressed { 
                     background-color: #0078D4; 
                     color: #FFF;
                     border: 2px solid #005A9E;
-                }}
+                }
             """)
 
 class SensorBox(QFrame):
-    """Modern Sensor Display Box with Status Indicator"""
+    """Modern Sensor Display with Progress Bar"""
     def __init__(self, title):
         super().__init__()
-        self.title = title
         self.current_value = 0
+        self.max_dist = 200
         
-        # Modern styling
         self.setStyleSheet("""
             QFrame {
-                background-color: #F5F5F5; 
-                border: 2px solid #ECECEC; 
+                background-color: #FFFFFF;
+                border: 1px solid #E0E0E0;
                 border-radius: 12px;
-                padding: 8px;
             }
         """)
+        self.setFixedSize(110, 130)
         
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(12, 12, 12, 12)
-        layout.setSpacing(8)
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(5)
         
-        # Title Label
-        lbl_title = QLabel(title)
-        lbl_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title_font = QFont("Segoe UI", 10, QFont.Weight.Bold)
-        lbl_title.setFont(title_font)
-        lbl_title.setStyleSheet("color: #0078D4; letter-spacing: 1px;")
+        self.lbl_title = QLabel(title)
+        self.lbl_title.setFont(QFont("Segoe UI", 9, QFont.Weight.Bold))
+        self.lbl_title.setStyleSheet("color: #888; border: none; background: transparent;")
+        self.lbl_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self.lbl_title)
         
-        # Value Label
         self.lbl_val = QLabel("--")
+        self.lbl_val.setFont(QFont("Segoe UI", 22, QFont.Weight.Bold))
+        self.lbl_val.setStyleSheet("color: #333; border: none; background: transparent;")
         self.lbl_val.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        val_font = QFont("Segoe UI", 32, QFont.Weight.Bold)
-        self.lbl_val.setFont(val_font)
-        self.lbl_val.setStyleSheet("color: #0078D4;")
-        
-        # Unit Label
-        self.lbl_unit = QLabel("cm")
-        self.lbl_unit.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        unit_font = QFont("Segoe UI", 10)
-        self.lbl_unit.setFont(unit_font)
-        self.lbl_unit.setStyleSheet("color: #666666;")
-        
-        layout.addWidget(lbl_title)
         layout.addWidget(self.lbl_val)
-        layout.addWidget(self.lbl_unit)
+        
+        self.bar = QProgressBar()
+        self.bar.setTextVisible(False)
+        self.bar.setFixedHeight(6)
+        self.bar.setRange(0, 100)
+        self.bar.setValue(0)
+        self.bar.setStyleSheet("""
+            QProgressBar {
+                background-color: #F0F0F0;
+                border-radius: 3px;
+                border: none;
+            }
+            QProgressBar::chunk {
+                background-color: #0078D4;
+                border-radius: 3px;
+            }
+        """)
+        layout.addWidget(self.bar)
 
     def update_val(self, val):
-        """Update sensor value with color coding"""
         self.current_value = val
-        self.lbl_val.setText(str(val))
+        self.lbl_val.setText(str(int(val)))
         
-        # Color gradient based on distance
-        val_font = QFont("Segoe UI", 32, QFont.Weight.Bold)
-        self.lbl_val.setFont(val_font)
+        percent = 0
+        if val > 0:
+            percent = max(0, min(100, int((1 - (val / self.max_dist)) * 100)))
         
-        if val < 20:
-            # Danger: Bright Red
-            self.lbl_val.setStyleSheet("color: #DC3545; font-weight: bold;")
-            self.setStyleSheet("""
-                QFrame {
-                    background-color: #F5F5F5; 
-                    border: 2px solid #DC3545; 
-                    border-radius: 12px;
-                    padding: 8px;
-                }
-            """)
-        elif val < 50:
-            # Warning: Bright Yellow
-            self.lbl_val.setStyleSheet("color: #FFC107; font-weight: bold;")
-            self.setStyleSheet("""
-                QFrame {
-                    background-color: #F5F5F5; 
-                    border: 2px solid #FFC107; 
-                    border-radius: 12px;
-                    padding: 8px;
-                }
-            """)
-        else:
-            # Safe: Windows Blue
-            self.lbl_val.setStyleSheet("color: #0078D4; font-weight: bold;")
-            self.setStyleSheet("""
-                QFrame {
-                    background-color: #F5F5F5; 
-                    border: 2px solid #0078D4; 
-                    border-radius: 12px;
-                    padding: 8px;
-                }
-            """)
+        self.bar.setValue(percent)
+
+        if val == 0 or val >= 200: 
+            color = "#BDBDBD"
+            bg_val = "#333"
+        elif val < 20: 
+            color = "#DC3545"
+            bg_val = "#DC3545"
+        elif val < 50: 
+            color = "#FFC107"
+            bg_val = "#F57C00"
+        else: 
+            color = "#0078D4"
+            bg_val = "#0078D4"
+
+        self.lbl_val.setStyleSheet(f"color: {bg_val}; border: none; background: transparent;")
+        self.bar.setStyleSheet(f"""
+            QProgressBar {{
+                background-color: #F0F0F0;
+                border-radius: 3px;
+                border: none;
+            }}
+            QProgressBar::chunk {{
+                background-color: {color};
+                border-radius: 3px;
+            }}
+        """)
+
 class LoadingOverlay(QWidget):
-    """Màn hình chờ chặn thao tác người dùng"""
+    """Màn hình chờ chặn thao tác người dùng - FIXED"""
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, False) # Chặn chuột
+        self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, False)
         self.setAttribute(Qt.WidgetAttribute.WA_NoSystemBackground)
         
-        # Layout
         layout = QVBoxLayout(self)
         layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         
-        # Container
         container = QFrame()
+        # ✅ FIX: Bỏ thuộc tính 'content' không hợp lệ
         container.setStyleSheet("""
             QFrame {
                 background-color: rgba(0, 0, 0, 200);
@@ -171,15 +164,28 @@ class LoadingOverlay(QWidget):
         container.setFixedSize(300, 150)
         vbox = QVBoxLayout(container)
         
-        # Label
         self.lbl_text = QLabel("PROCESSING...")
         self.lbl_text.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.lbl_text.setStyleSheet("color: white; font-weight: bold; font-size: 16px; background: transparent; border: none;")
+        self.lbl_text.setStyleSheet("""
+            QLabel {
+                color: white; 
+                font-weight: bold; 
+                font-size: 16px; 
+                background: transparent; 
+                border: none;
+            }
+        """)
         
-        # Sub Label
-        self.lbl_sub = QLabel("Please wait for hardware...")
+        self.lbl_sub = QLabel("Please wait...")
         self.lbl_sub.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.lbl_sub.setStyleSheet("color: #CCC; font-size: 12px; background: transparent; border: none;")
+        self.lbl_sub.setStyleSheet("""
+            QLabel {
+                color: #CCC; 
+                font-size: 12px; 
+                background: transparent; 
+                border: none;
+            }
+        """)
         
         vbox.addWidget(self.lbl_text)
         vbox.addWidget(self.lbl_sub)
@@ -187,14 +193,16 @@ class LoadingOverlay(QWidget):
         
         self.hide()
 
-    def show_msg(self, title, sub=""):
-        self.lbl_text.setText(title)
-        self.lbl_sub.setText(sub)
-        self.resize(self.parent().size()) # Phủ kín màn hình cha
+    def show_msg(self, msg, sub=""):
+        """Hiển thị overlay với message"""
+        self.lbl_text.setText(msg)
+        if sub:
+            self.lbl_sub.setText(sub)
+        self.resize(self.parent().size())
         self.show()
-        self.raise_()
-
+        self.raise_()  # Đưa lên trên cùng
+    
     def paintEvent(self, event):
-        # Vẽ nền mờ tối
+        """Vẽ nền mờ"""
         painter = QPainter(self)
-        painter.fillRect(self.rect(), QColor(0, 0, 0, 100))
+        painter.fillRect(self.rect(), QColor(0, 0, 0, 120))

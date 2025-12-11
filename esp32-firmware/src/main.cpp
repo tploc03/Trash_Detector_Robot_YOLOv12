@@ -10,8 +10,8 @@
 
 #include "SonarManager.h"
 
-const char *ssid = "Nha Tro Kieu Trinh 2.4G";
-const char *password = "88888888";
+const char *ssid = "Tề Tĩnh Xuân";
+const char *password = "123454321";
 const int localPort = 8888;
 
 #define ENA 27
@@ -26,11 +26,7 @@ AudioFileSourceSPIFFS *file;
 AudioOutputI2S *out;
 bool isSpeaking = false;
 
-// Sử dụng DAC nội của ESP32 (GPIO 25, GPIO 26)
-// GPIO 25: DAC1 (Left channel)
-// GPIO 26: DAC2 (Right channel)
-
-// CẤU HÌNH CẢM BIẾN
+// Sonar Sensors
 SonarManager sonarFront(18, 34);
 SonarManager sonarLeft(23, 35);
 SonarManager sonarRight(5, 36);
@@ -85,12 +81,12 @@ void setMotor(int speedL, int speedR)
 
 void playSound(const char *filename)
 {
-  Serial.printf("🔊 Request: %s\n", filename);
+  Serial.printf("Request: %s\n", filename);
 
   // Stop current playback
   if (wav && wav->isRunning())
   {
-    Serial.println("Stopping current playback...");
+    Serial.println("Stopping current playback");
     wav->stop();
     delay(50);
     isSpeaking = false;
@@ -104,7 +100,7 @@ void playSound(const char *filename)
     file = NULL;
   }
 
-  delay(50); // Important: delay between stop and play
+  delay(50); // delay between stop and play
 
   String fullPath = filename;
   if (!fullPath.startsWith("/"))
@@ -115,7 +111,7 @@ void playSound(const char *filename)
 
   if (!file || !file->isOpen())
   {
-    Serial.printf("❌ Failed to open: %s\n", fullPath.c_str());
+    Serial.printf("Failed to open: %s\n", fullPath.c_str());
     if (file)
     {
       file->close();
@@ -125,24 +121,23 @@ void playSound(const char *filename)
     return;
   }
 
-  Serial.println("Creating WAV decoder...");
+  Serial.println("Creating WAV decoder");
   if (!wav)
     wav = new AudioGeneratorWAV();
 
-  Serial.println("Starting playback...");
+  Serial.println("Starting playback");
   if (wav->begin(file, out))
   {
     isSpeaking = true;
-    Serial.printf("✓ Playing: %s\n", fullPath.c_str());
+    Serial.printf("Playing: %s\n", fullPath.c_str());
   }
   else
   {
-    Serial.println("❌ Failed to begin playback");
+    Serial.println("Failed to begin playback");
     isSpeaking = false;
   }
 }
 
-// Tác vụ đọc cảm biến chạy riêng ở Core 0
 void TaskSensors(void *pvParameters)
 {
   (void)pvParameters;
@@ -159,7 +154,7 @@ void setup()
 {
   Serial.begin(115200);
 
-  // 1. Motor Setup
+  // Motor Setup
   pinMode(ENA, OUTPUT);
   pinMode(IN1, OUTPUT);
   pinMode(IN2, OUTPUT);
@@ -168,26 +163,25 @@ void setup()
   pinMode(IN4, OUTPUT);
   setMotor(0, 0);
 
-  // 2. Sensor Setup
+  // Sensor Setup
   sonarFront.begin();
   sonarLeft.begin();
   sonarRight.begin();
 
-  // 3. Audio Setup
+  // Audio Setup
   if (!SPIFFS.begin(true))
   {
-    Serial.println("❌ SPIFFS Mount Failed");
+    Serial.println("SPIFFS Mount Failed");
     return;
   }
 
-  Serial.println("Initializing DAC audio output (Internal)...");
-  // Dùng DAC nội của ESP32 thay vì I2S
-  out = new AudioOutputI2S(0, 1); // DAC mode
+  Serial.println("Initializing DAC audio output (Internal)");
+  out = new AudioOutputI2S(0, 1);
   out->SetOutputModeMono(true);
-  out->SetGain(1.0); // Max gain cho DAC
-  Serial.println("✓ DAC initialized");
+  out->SetGain(1);
+  Serial.println("DAC initialized");
 
-  // 4. WiFi Setup
+  // WiFi Setup
   Serial.print("Connecting WiFi");
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
@@ -200,11 +194,10 @@ void setup()
   }
   if (WiFi.status() == WL_CONNECTED)
   {
-    Serial.println("\n✓ WiFi Connected: " + WiFi.localIP().toString());
+    Serial.println("\WiFi Connected: " + WiFi.localIP().toString());
     udp.begin(localPort);
   }
 
-  // 5. Start Sensor Task
   xTaskCreatePinnedToCore(TaskSensors, "Sensors", 4096, NULL, 1, NULL, 0);
 
   playSound("/startup.wav");
@@ -212,7 +205,7 @@ void setup()
 
 void loop()
 {
-  // 1. Audio Loop
+  // Audio Loop
   if (wav && wav->isRunning())
   {
     if (!wav->loop())
@@ -222,7 +215,7 @@ void loop()
     }
   }
 
-  // 2. WiFi Reconnect
+  // WiFi Reconnect
   if (WiFi.status() != WL_CONNECTED)
   {
     static unsigned long lastWifiCheck = 0;
@@ -234,7 +227,7 @@ void loop()
     return;
   }
 
-  // 3. UDP Receive
+  // UDP Receive
   int packetSize = udp.parsePacket();
   if (packetSize)
   {
@@ -259,7 +252,7 @@ void loop()
     }
   }
 
-  // 4. UDP Send Telemetry (Sensors)
+  // UDP Send Telemetry (Sensors)
   static unsigned long lastSendTime = 0;
   if (millis() - lastSendTime > 150)
   {
@@ -280,7 +273,7 @@ void loop()
     }
   }
 
-  // 5. Failsafe
-  if (millis() - lastCmdTime > 2000)
+  // Failsafe
+  if (millis() - lastCmdTime > 500)
     setMotor(0, 0);
 }
