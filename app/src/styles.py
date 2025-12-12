@@ -1,5 +1,5 @@
 """
-Windows 11 Light Mode Theme - Clean, Bright, Professional
+Clean, Bright, Professional
 """
 
 PRIMARY_COLOR = "#0078D4"      # Windows Blue Accent

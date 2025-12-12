@@ -17,23 +17,22 @@ class RobotController:
         self.screen_width = screen_width
         self.center_x = screen_width // 2
         
-        # --- CẤU HÌNH CHIẾN THUẬT ---
-        # 1. Thông số Scan
+        #Scan
         self.SCAN_TURN_DURATION = 0.4  
         self.SCAN_WAIT_DURATION = 1.0  
         self.SCAN_SPEED = 90
         self.ALIGN_SPEED = 40
         self.SEARCH_DELAY = 0.5
         self.LOST_TARGET_TIMEOUT = 1.0
-        # 2. Thông số Xác thực
+        #Xác thực
         self.CONFIRM_TIME = 2.0        
         
-        # 3. Thông số Di chuyển
+        #Di chuyển
         self.ALIGN_TOLERANCE = 40      
         self.TURN_SENSITIVITY = 0.2   
         self.STOP_DISTANCE = 10        
         
-        # --- BIẾN NỘI BỘ ---
+
         self.target_x = None
         self.current_label = ""
         self.dist_front = 999
@@ -125,7 +124,7 @@ class RobotController:
             if duration >= self.CONFIRM_TIME:
                 self.state = RobotState.ALIGNING
                 return 0, 0, "CONFIRMED!"
-            return 0, 0, f"Verifying ({duration:.1f}s)..."
+            return 0, 0, f"Verifying ({duration:.1f}s)"
 
         elif self.state == RobotState.ALIGNING:
             error = self.target_x - self.center_x

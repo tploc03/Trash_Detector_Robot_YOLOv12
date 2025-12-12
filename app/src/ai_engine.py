@@ -1,4 +1,3 @@
-# ai_engine.py
 import os
 import cv2
 import torch   
@@ -9,9 +8,7 @@ def fix_aattn_compat(m):
     try:
         model_to_scan = m.model if hasattr(m, 'model') else m
         for mod in model_to_scan.modules():
-            # Tìm module có tên là AAttn (Attention)
             if mod.__class__.__name__ == 'AAttn':
-                # Nếu thiếu hàm qkv nhưng có qk và v -> Vá lỗi
                 if not hasattr(mod, 'qkv') and hasattr(mod, 'qk') and hasattr(mod, 'v'):
                     def _qkv(self, x):
                         qk_out = self.qk(x)
@@ -34,7 +31,6 @@ class TrashDetector:
                 self.model = YOLO(model_path)
                 
                 fix_aattn_compat(self.model) 
-                # --------------------------------------------
                 
                 print("Model loaded")
             except Exception as e:

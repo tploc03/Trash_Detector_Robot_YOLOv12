@@ -1,4 +1,3 @@
-# network.py - SAFE PORT BINDING
 import socket
 import json
 import time
@@ -12,20 +11,18 @@ class NetworkThread(QThread):
         super().__init__()
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         
-        # --- FIX LỖI KẸT CỔNG (Bind Error) ---
         bound = False
         while not bound:
             try:
                 self.sock.bind(("0.0.0.0", port))
                 bound = True
-                print(f"✅ Socket bound to port {port}")
+                print(f"Socket bound to port {port}")
             except OSError:
-                print(f"⚠️ Port {port} is busy. Trying {port + 1}...")
-                port += 1 # Tự động nhảy sang cổng tiếp theo
-                if port > 10050: # Giới hạn thử
-                    print("❌ Could not bind any port!")
+                print(f"Port {port} is busy. Trying {port + 1}...")
+                port += 1
+                if port > 10050:
+                    print("Could not bind any port!")
                     break
-        # -------------------------------------
 
         self.sock.settimeout(0.1) 
         self.target_ip = target_ip 
@@ -34,7 +31,7 @@ class NetworkThread(QThread):
         self.last_packet_time = 0 
 
     def run(self):
-        print("✅ Network Thread Started")
+        print("Network Thread Started")
         while self.running:
             try:
                 data, addr = self.sock.recvfrom(1024)
@@ -59,14 +56,14 @@ class NetworkThread(QThread):
             except Exception as e:
                 print(f"Net Error: {e}")
         
-        print("🛑 Network Thread Exited")
+        print("Network Thread Exited")
 
     def send_command(self, cmd_dict):
         try:
             msg = json.dumps(cmd_dict).encode()
             self.sock.sendto(msg, (self.target_ip, self.target_port))
         except Exception as e:
-            print(f"❌ Send Error: {e}")
+            print(f"Send Error: {e}")
             
     def update_target_ip(self, new_ip):
         self.target_ip = new_ip
@@ -77,5 +74,5 @@ class NetworkThread(QThread):
             if self.sock:
                 self.sock.close()
         except Exception as e:
-            print(f"⚠️ Error closing socket: {e}")
+            print(f"Error closing socket: {e}")
         self.wait(1000)

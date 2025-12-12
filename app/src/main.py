@@ -308,7 +308,7 @@ class RobotApp(QMainWindow):
             self.video_thread.update_conf(conf)
             self.robot.enable_search(spin_enabled)
         
-        print(f"⚙️ AUTO CONFIG UPDATED:")
+        print(f"AUTO CONFIG UPDATED:")
         print(f"   Speed: {speed}, Confidence: {conf:.2f}")
         print(f"   Scan: {scan_dur}s / Wait: {wait_dur}s / Verify: {verify_time}s")
         print(f"   Scan Speed: {scan_speed}%, Delay: {search_delay}s")

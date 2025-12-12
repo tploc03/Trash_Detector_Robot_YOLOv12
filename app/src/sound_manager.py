@@ -6,12 +6,17 @@ class SoundManager:
         self.last_played = 0
         
         self.trash_map = {
-            "battery": "battery.wav",
-            "glass": "glass.wav",
-            "metal": "metal.wav",
-            "paper": "paper.wav",
-            "plastic": "plastic.wav"
+            "trash": "detect.wav"
         }
+        
+        # 5-CLASS VERSION
+        # self.trash_map = {
+        #     "battery": "battery.wav",
+        #     "glass": "glass.wav",
+        #     "metal": "metal.wav",
+        #     "paper": "paper.wav",
+        #     "plastic": "plastic.wav"
+        # }
 
     def play_remote(self, filename):
         # Cooldown 2s
@@ -33,6 +38,7 @@ class SoundManager:
 
     def play_trash_detect(self, label):
         fname = self.trash_map.get(label, "detect.wav")
+        # fname = self.trash_map.get(label, "detect.wav")
         self.play_remote(fname)
     
     def play_moving(self):
