@@ -22,8 +22,9 @@ class RobotController:
         self.SCAN_TURN_DURATION = 0.4  
         self.SCAN_WAIT_DURATION = 1.0  
         self.SCAN_SPEED = 90
+        self.ALIGN_SPEED = 40
         self.SEARCH_DELAY = 0.5
-        
+        self.LOST_TARGET_TIMEOUT = 1.0
         # 2. Thông số Xác thực
         self.CONFIRM_TIME = 2.0        
         
@@ -37,6 +38,8 @@ class RobotController:
         self.current_label = ""
         self.dist_front = 999
         
+        self.confidence_threshold = 0.2
+
         self.state_timer = 0           
         self.first_seen_time = 0       
         self.last_seen_time = 0        
@@ -54,13 +57,17 @@ class RobotController:
         best = max(detections, key=lambda x: x['conf'])
         
 
-        if best['conf'] < 0.3: 
+        if best['conf'] < self.confidence_threshold:
             return
 
         self.target_x = best['center_x']
         self.current_label = best['label']
         self.last_seen_time = time.time()
         
+        if abs(best['center_x'] - self.center_x) > self.ALIGN_TOLERANCE:
+            print(f"Skip {self.current_label} outside tolerance (x={best['center_x']})")
+            return
+    
         if self.state in [RobotState.SEARCH_STEP, RobotState.SEARCH_WAIT, RobotState.IDLE]:
             print(f"Spotted {self.current_label} ({best['conf']:.2f}) at x={best['center_x']} -> Verifying")
             self.state = RobotState.VERIFYING
@@ -85,7 +92,7 @@ class RobotController:
 
         # 2. Xử lý mất dấu
         if self.state in [RobotState.VERIFYING, RobotState.ALIGNING, RobotState.CHASING]:
-            if now - self.last_seen_time > 0.5:
+            if now - self.last_seen_time > self.LOST_TARGET_TIMEOUT:
                 if self.search_enabled:
                     self.state = RobotState.SEARCH_WAIT 
                     self.state_timer = now
@@ -129,7 +136,7 @@ class RobotController:
                 R = self.base_speed
                 return int(L), int(R), "LOCKED"
             
-            turn_speed = 50 
+            turn_speed = self.ALIGN_SPEED 
             if error > 0: 
                 return turn_speed, -turn_speed, "Aligning Right"
             else: 
