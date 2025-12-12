@@ -73,6 +73,9 @@ class NetworkThread(QThread):
 
     def stop(self):
         self.running = False
-        if self.sock:
-            self.sock.close()
+        try:
+            if self.sock:
+                self.sock.close()
+        except Exception as e:
+            print(f"⚠️ Error closing socket: {e}")
         self.wait(1000)

@@ -1,4 +1,3 @@
-# robot_controller.py - FIXED SPIN ISSUE
 from enum import Enum
 import time
 
@@ -22,7 +21,8 @@ class RobotController:
         # 1. Thông số Scan
         self.SCAN_TURN_DURATION = 0.4  
         self.SCAN_WAIT_DURATION = 1.0  
-        self.SCAN_SPEED = 90           # ✅ TĂNG TỐC ĐỘ XOAY (60 -> 90) để tránh kẹt
+        self.SCAN_SPEED = 90
+        self.SEARCH_DELAY = 0.5
         
         # 2. Thông số Xác thực
         self.CONFIRM_TIME = 2.0        
@@ -30,7 +30,7 @@ class RobotController:
         # 3. Thông số Di chuyển
         self.ALIGN_TOLERANCE = 40      
         self.TURN_SENSITIVITY = 0.2   
-        self.STOP_DISTANCE = 20        
+        self.STOP_DISTANCE = 10        
         
         # --- BIẾN NỘI BỘ ---
         self.target_x = None
@@ -40,10 +40,10 @@ class RobotController:
         self.state_timer = 0           
         self.first_seen_time = 0       
         self.last_seen_time = 0        
-        self.search_enabled = False    
+        self.search_enabled = False
+        self.search_started_time = 0
 
     def update_sensors(self, front, left, right):
-        # Fix lỗi sensor trả về 0 (đôi khi sensor lỗi trả về 0)
         self.dist_front = front if front > 0 else 999
 
     def update_detection(self, detections):
@@ -51,11 +51,9 @@ class RobotController:
         if not detections:
             return
         
-        # Lấy vật thể tốt nhất
         best = max(detections, key=lambda x: x['conf'])
         
-        # ✅ LỌC NHIỄU: Chỉ chuyển trạng thái nếu độ tin cậy > 30%
-        # Tránh việc nhìn thấy "ma" rồi đứng yên mãi
+
         if best['conf'] < 0.3: 
             return
 
@@ -63,16 +61,16 @@ class RobotController:
         self.current_label = best['label']
         self.last_seen_time = time.time()
         
-        # Nếu đang Tìm kiếm mà thấy rác -> Chuyển sang VERIFY
         if self.state in [RobotState.SEARCH_STEP, RobotState.SEARCH_WAIT, RobotState.IDLE]:
-            print(f"👀 Spotted {self.current_label} ({best['conf']:.2f}) -> Verifying...")
+            print(f"Spotted {self.current_label} ({best['conf']:.2f}) at x={best['center_x']} -> Verifying")
             self.state = RobotState.VERIFYING
             self.first_seen_time = time.time()
 
     def enable_search(self, enabled):
         self.search_enabled = enabled
         if enabled:
-            self.state = RobotState.SEARCH_STEP
+            self.state = RobotState.SEARCH_WAIT
+            self.search_started_time = time.time()
             self.state_timer = time.time()
         else:
             self.state = RobotState.IDLE
@@ -83,7 +81,7 @@ class RobotController:
         # 1. Dừng nếu quá gần
         if self.dist_front < self.STOP_DISTANCE:
             self.state = RobotState.REACHED
-            return 0, 0, f"✅ REACHED: {self.current_label}"
+            return 0, 0, f"REACHED: {self.current_label}"
 
         # 2. Xử lý mất dấu
         if self.state in [RobotState.VERIFYING, RobotState.ALIGNING, RobotState.CHASING]:
@@ -93,7 +91,7 @@ class RobotController:
                     self.state_timer = now
                 else:
                     self.state = RobotState.IDLE
-                return 0, 0, "❌ Lost Target..."
+                return 0, 0, "Lost Target"
 
         # --- STATE MACHINE ---
 
@@ -101,35 +99,41 @@ class RobotController:
             if now - self.state_timer > self.SCAN_TURN_DURATION:
                 self.state = RobotState.SEARCH_WAIT
                 self.state_timer = now
-                return 0, 0, "Wait..."
+                return 0, 0, "Wait"
             
             # Quay trái (L-, R+)
-            return -self.SCAN_SPEED, self.SCAN_SPEED, "🔄 Step Turn..." 
+            return -self.SCAN_SPEED, self.SCAN_SPEED, "Step Turn" 
 
         elif self.state == RobotState.SEARCH_WAIT:
+            if now - self.search_started_time < self.SEARCH_DELAY:
+                return 0, 0, f"Wait before scan ({self.SEARCH_DELAY - (now - self.search_started_time):.1f}s)..."
+            
             if now - self.state_timer > self.SCAN_WAIT_DURATION:
                 self.state = RobotState.SEARCH_STEP
                 self.state_timer = now
-            return 0, 0, "👀 Scanning..."
+            return 0, 0, "Scanning"
 
         elif self.state == RobotState.VERIFYING:
             duration = now - self.first_seen_time
             if duration >= self.CONFIRM_TIME:
                 self.state = RobotState.ALIGNING
-                return 0, 0, "🎯 CONFIRMED!"
-            return 0, 0, f"⏳ Verifying ({duration:.1f}s)..."
+                return 0, 0, "CONFIRMED!"
+            return 0, 0, f"Verifying ({duration:.1f}s)..."
 
         elif self.state == RobotState.ALIGNING:
             error = self.target_x - self.center_x
+            
             if abs(error) < self.ALIGN_TOLERANCE:
                 self.state = RobotState.CHASING
-                return 0, 0, "🚀 LOCKED! CHARGING..."
+                L = self.base_speed
+                R = self.base_speed
+                return int(L), int(R), "LOCKED"
             
             turn_speed = 50 
             if error > 0: 
-                return turn_speed, -turn_speed, "🎯 Aligning Right..."
+                return turn_speed, -turn_speed, "Aligning Right"
             else: 
-                return -turn_speed, turn_speed, "🎯 Aligning Left..."
+                return -turn_speed, turn_speed, "Aligning Left"
 
         elif self.state == RobotState.CHASING:
             error = self.target_x - self.center_x
@@ -139,7 +143,7 @@ class RobotController:
             L = self.base_speed + turn
             R = self.base_speed - turn
             
-            return int(L), int(R), f"🔥 CHASING! Dist: {self.dist_front}cm"
+            return int(L), int(R), f"Dist: {self.dist_front}cm"
 
         return 0, 0, "IDLE"
 

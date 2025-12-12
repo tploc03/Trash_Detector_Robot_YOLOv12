@@ -2,12 +2,12 @@ import os
 import shutil
 import random
 
-LABEL_DIR = "ai/data/real_labels"
+LABEL_DIR = "ai/data/final_dataset_label"
 
 # Thư mục ảnh
-IMAGE_DIR = "ai/data/real_dataset"
+IMAGE_DIR = "ai/data/final_dataset_image"
 
-OUTPUT_DIR = "ai/data/real_dataset_yolo"
+OUTPUT_DIR = "ai/data/final_yolo_dataset"
 
 CLASSES = [
     "battery",

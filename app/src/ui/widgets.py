@@ -143,7 +143,6 @@ class SensorBox(QFrame):
         """)
 
 class LoadingOverlay(QWidget):
-    """Màn hình chờ chặn thao tác người dùng - FIXED"""
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, False)
@@ -153,7 +152,6 @@ class LoadingOverlay(QWidget):
         layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         
         container = QFrame()
-        # ✅ FIX: Bỏ thuộc tính 'content' không hợp lệ
         container.setStyleSheet("""
             QFrame {
                 background-color: rgba(0, 0, 0, 200);

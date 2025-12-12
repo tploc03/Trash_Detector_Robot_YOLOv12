@@ -1,9 +1,7 @@
-# styles.py - FIXED CSS ERROR
 """
 Windows 11 Light Mode Theme - Clean, Bright, Professional
 """
 
-# Windows 11 Light Mode Color Palette
 PRIMARY_COLOR = "#0078D4"      # Windows Blue Accent
 PRIMARY_DARK = "#005A9E"       # Darker Blue
 PRIMARY_LIGHT = "#50B4F5"      # Lighter Blue
@@ -68,8 +66,6 @@ QSlider::handle:horizontal {{ background: {PRIMARY_COLOR}; width: 18px; margin: 
 QLabel {{ color: {TEXT_PRIMARY}; background: transparent; }}
 """
 
-# ✅ FIX LỖI "Unknown property content"
-# Thay vì dùng content '✔', ta dùng màu sắc để phân biệt
 CHECKBOX_STYLE = f"""
 QCheckBox {{
     font-size: 13px;

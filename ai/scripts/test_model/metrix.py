@@ -139,9 +139,9 @@ def analyze_yolo_dataset(dataset_path, data_yaml_path=None, img_formats=None):
 if __name__ == "__main__":
     # Thay đổi đường dẫn tới thư mục dataset của bạn
     # Ví dụ: "D:/LocTP/6_class_dataset_v7" hoặc "D:/LocTP/6_class_dataset_v7/train"
-    MY_DATASET_PATH = r"ai/data/metrix" 
+    MY_DATASET_PATH = r"ai/data/final_yolo_dataset" 
     
     # Thay đổi đường dẫn tới file data.yaml (để lấy tên class cho đẹp)
-    MY_YAML_PATH = r"ai/scripts/test_model/data.yaml"
+    MY_YAML_PATH = r"ai/scripts/test_model/final_data.yaml"
     
     analyze_yolo_dataset(MY_DATASET_PATH, MY_YAML_PATH)

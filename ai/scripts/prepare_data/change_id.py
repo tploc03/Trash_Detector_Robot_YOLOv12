@@ -36,10 +36,10 @@ def update_class_id_in_folder(target_folder, new_class_id):
 
     print(f"Đã cập nhật {file_count} file trong thư mục.")
 
-ID = 5
+ID = 4
 
 
-FOLDER = 'ai/data/label_v3/plastic_txt' 
+FOLDER = 'ai/data/final_dataset_label/plastic' 
 
 if __name__ == "__main__":
     if not os.path.isdir(FOLDER):

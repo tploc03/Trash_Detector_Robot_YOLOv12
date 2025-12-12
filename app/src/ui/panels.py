@@ -87,15 +87,14 @@ class SettingsPanel(QWidget):
     def create_connection_tab(self):
         widget = QWidget()
         layout = QVBoxLayout()
-        layout.setSpacing(20)
-        layout.setContentsMargins(30, 30, 30, 30)
+        layout.setSpacing(15)  # 🆕 FIX: Responsive - 20 -> 15
+        layout.setContentsMargins(20, 20, 20, 20)  # 🆕 FIX: Responsive - 30 -> 20
 
         robot_label = QLabel("Robot IP Address")
         robot_label.setFont(QFont("Segoe UI", 11, QFont.Weight.Bold))
         robot_label.setStyleSheet(f"color: {PRIMARY_COLOR};")
         layout.addWidget(robot_label)
         
-        # ✅ CẬP NHẬT IP MẶC ĐỊNH THEO ẢNH CỦA BẠN
         self.txt_robot_ip = QLineEdit("10.230.248.1") 
         self.txt_robot_ip.setStyleSheet(INPUT_STYLE)
         self.txt_robot_ip.setMinimumHeight(40)
@@ -114,7 +113,6 @@ class SettingsPanel(QWidget):
         cam_label.setStyleSheet(f"color: {PRIMARY_COLOR};")
         layout.addWidget(cam_label)
         
-        # ✅ CẬP NHẬT IP MẶC ĐỊNH THEO ẢNH CỦA BẠN
         self.txt_cam_ip = QLineEdit("http://10.230.248.174:81/stream")
         self.txt_cam_ip.setStyleSheet(INPUT_STYLE)
         self.txt_cam_ip.setMinimumHeight(40)
@@ -127,9 +125,7 @@ class SettingsPanel(QWidget):
         btn_cam.setMinimumHeight(40)
         btn_cam.clicked.connect(lambda: self.app.update_cam_ip(self.txt_cam_ip.text()))
         
-        # --- SỬA NÚT FLASH ---
         self.btn_flash = QPushButton("FLASH")
-        # ✅ FIX LỖI STYLESHEET: Viết đúng cú pháp CSS
         self.btn_flash.setStyleSheet(f"""
             QPushButton {{
                 background-color: {BG_TERTIARY}; 
@@ -142,7 +138,6 @@ class SettingsPanel(QWidget):
             QPushButton:hover {{ background-color: #DDD; }}
         """)
         self.btn_flash.setMinimumHeight(40)
-        # Truyền đúng text hiện tại khi bấm
         self.btn_flash.clicked.connect(lambda: self.app.toggle_flash(self.txt_cam_ip.text()))
         
         btn_layout.addWidget(btn_cam, 70)
@@ -152,25 +147,21 @@ class SettingsPanel(QWidget):
         layout.addStretch()
         widget.setLayout(layout)
         return widget
-
-    # (Các hàm create_manual_tab, create_auto_tab, apply_manual, apply_auto GIỮ NGUYÊN)
-    # Bạn copy lại phần còn lại của file panels.py cũ vào đây
-    # Lưu ý: Nếu file cũ của bạn đã có các hàm đó, chỉ cần thay thế class SettingsPanel ở trên thôi.
     
     def create_manual_tab(self):
         widget = QWidget()
         layout = QVBoxLayout()
-        layout.setSpacing(20)
-        layout.setContentsMargins(30, 30, 30, 30)
+        layout.setSpacing(15)  # 🆕 FIX: Responsive - 20 -> 15
+        layout.setContentsMargins(20, 20, 20, 20)  # 🆕 FIX: Responsive - 30 -> 20
         
         l1 = QHBoxLayout()
         lbl_speed_title = QLabel("Speed:")
-        lbl_speed_title.setMinimumWidth(80)
+        lbl_speed_title.setMinimumWidth(50)  # 🆕 FIX: Responsive - 80 -> 50
         self.slider_man_speed = QSlider(Qt.Orientation.Horizontal)
         self.slider_man_speed.setRange(0, 255)
         self.slider_man_speed.setValue(80)
         lbl_speed = QLabel("80")
-        lbl_speed.setMinimumWidth(40)
+        lbl_speed.setMinimumWidth(30)  # 🆕 FIX: Responsive - 40 -> 30
         lbl_speed.setAlignment(Qt.AlignmentFlag.AlignRight)
         self.slider_man_speed.valueChanged.connect(lambda v: lbl_speed.setText(str(v)))
         l1.addWidget(lbl_speed_title)
@@ -191,29 +182,29 @@ class SettingsPanel(QWidget):
     def create_auto_tab(self):
         widget = QWidget()
         layout = QVBoxLayout()
-        layout.setSpacing(15)
-        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(12)  # 🆕 FIX: Responsive - 15 -> 12
+        layout.setContentsMargins(15, 15, 15, 15)  # 🆕 FIX: Responsive - 20 -> 15
         
         # --- NHÓM 1: CƠ BẢN ---
         l1 = QHBoxLayout()
         lbl_speed_title = QLabel("Speed:")
-        lbl_speed_title.setMinimumWidth(80)
+        lbl_speed_title.setMinimumWidth(50)  # 🆕 FIX: Responsive - 80 -> 50
         self.slider_auto_speed = QSlider(Qt.Orientation.Horizontal)
         self.slider_auto_speed.setRange(0, 255)
         self.slider_auto_speed.setValue(65)
         lbl_speed = QLabel("65")
-        lbl_speed.setMinimumWidth(40)
+        lbl_speed.setMinimumWidth(30)  # 🆕 FIX: Responsive - 40 -> 30
         self.slider_auto_speed.valueChanged.connect(lambda v: lbl_speed.setText(str(v)))
         l1.addWidget(lbl_speed_title); l1.addWidget(self.slider_auto_speed); l1.addWidget(lbl_speed)
         
         l2 = QHBoxLayout()
         lbl_conf_title = QLabel("AI Conf:")
-        lbl_conf_title.setMinimumWidth(80)
+        lbl_conf_title.setMinimumWidth(50)  # 🆕 FIX: Responsive - 80 -> 50
         self.slider_auto_conf = QSlider(Qt.Orientation.Horizontal)
         self.slider_auto_conf.setRange(10, 80)
         self.slider_auto_conf.setValue(20)
         lbl_conf = QLabel("20%")
-        lbl_conf.setMinimumWidth(40)
+        lbl_conf.setMinimumWidth(30)  # 🆕 FIX: Responsive - 40 -> 30
         self.slider_auto_conf.valueChanged.connect(lambda v: lbl_conf.setText(f"{v}%"))
         l2.addWidget(lbl_conf_title); l2.addWidget(self.slider_auto_conf); l2.addWidget(lbl_conf)
 
@@ -259,6 +250,63 @@ class SettingsPanel(QWidget):
         strat_layout.addLayout(l_wait)
         strat_layout.addLayout(l_conf)
         grp_strat.setLayout(strat_layout)
+        
+        # --- NHÓM 3: CHUYỂN ĐỘNG & CẢM BIẾN (MỚI) ---
+        grp_move = QGroupBox("Movement & Sensor Tuning")
+        grp_move.setFont(QFont("Segoe UI", 9, QFont.Weight.Bold))
+        move_layout = QVBoxLayout()
+        
+        # Tốc độ xoay (Scan Speed)
+        l_scan_speed = QHBoxLayout()
+        self.slider_scan_speed = QSlider(Qt.Orientation.Horizontal)
+        self.slider_scan_speed.setRange(10, 100)
+        self.slider_scan_speed.setValue(90)
+        lbl_scan_speed = QLabel("90%")
+        self.slider_scan_speed.valueChanged.connect(lambda v: lbl_scan_speed.setText(f"{v}%"))
+        l_scan_speed.addWidget(QLabel("Scan Speed:")); l_scan_speed.addWidget(self.slider_scan_speed); l_scan_speed.addWidget(lbl_scan_speed)
+        
+        # Delay trước quay (Search Delay)
+        l_search_delay = QHBoxLayout()
+        self.slider_search_delay = QSlider(Qt.Orientation.Horizontal)
+        self.slider_search_delay.setRange(0, 30)
+        self.slider_search_delay.setValue(5)  # 0.5s
+        lbl_search_delay = QLabel("0.5s")
+        self.slider_search_delay.valueChanged.connect(lambda v: lbl_search_delay.setText(f"{v/10:.1f}s"))
+        l_search_delay.addWidget(QLabel("Search Delay:")); l_search_delay.addWidget(self.slider_search_delay); l_search_delay.addWidget(lbl_search_delay)
+        
+        # Ngưỡng căn chỉnh (Align Tolerance)
+        l_align = QHBoxLayout()
+        self.slider_align = QSlider(Qt.Orientation.Horizontal)
+        self.slider_align.setRange(10, 100)
+        self.slider_align.setValue(40)
+        lbl_align = QLabel("40px")
+        self.slider_align.valueChanged.connect(lambda v: lbl_align.setText(f"{v}px"))
+        l_align.addWidget(QLabel("Align Tol:")); l_align.addWidget(self.slider_align); l_align.addWidget(lbl_align)
+        
+        # Độ nhạy xoay (Turn Sensitivity)
+        l_turn_sens = QHBoxLayout()
+        self.slider_turn_sens = QSlider(Qt.Orientation.Horizontal)
+        self.slider_turn_sens.setRange(1, 50)
+        self.slider_turn_sens.setValue(2)  # 0.2
+        lbl_turn_sens = QLabel("0.2")
+        self.slider_turn_sens.valueChanged.connect(lambda v: lbl_turn_sens.setText(f"{v/10:.1f}"))
+        l_turn_sens.addWidget(QLabel("Turn Sens:")); l_turn_sens.addWidget(self.slider_turn_sens); l_turn_sens.addWidget(lbl_turn_sens)
+        
+        # Khoảng cách dừng (Stop Distance)
+        l_stop_dist = QHBoxLayout()
+        self.slider_stop_dist = QSlider(Qt.Orientation.Horizontal)
+        self.slider_stop_dist.setRange(5, 50)
+        self.slider_stop_dist.setValue(10)
+        lbl_stop_dist = QLabel("10cm")
+        self.slider_stop_dist.valueChanged.connect(lambda v: lbl_stop_dist.setText(f"{v}cm"))
+        l_stop_dist.addWidget(QLabel("Stop Dist:")); l_stop_dist.addWidget(self.slider_stop_dist); l_stop_dist.addWidget(lbl_stop_dist)
+
+        move_layout.addLayout(l_scan_speed)
+        move_layout.addLayout(l_search_delay)
+        move_layout.addLayout(l_align)
+        move_layout.addLayout(l_turn_sens)
+        move_layout.addLayout(l_stop_dist)
+        grp_move.setLayout(move_layout)
 
         btn = QPushButton("APPLY ALL SETTINGS")
         btn.setStyleSheet(BTN_STYLE)
@@ -269,6 +317,7 @@ class SettingsPanel(QWidget):
         layout.addLayout(l2)
         layout.addWidget(self.chk_spin)
         layout.addWidget(grp_strat)
+        layout.addWidget(grp_move)
         layout.addStretch()
         layout.addWidget(btn)
         widget.setLayout(layout)
@@ -289,4 +338,12 @@ class SettingsPanel(QWidget):
         wait_dur = self.slider_wait_dur.value() / 10.0
         verify_time = self.slider_confirm.value() / 10.0
         
-        self.app.apply_auto_config(speed, conf, spin_enabled, scan_dur, wait_dur, verify_time)
+        # 🆕 Lấy tham số chuyển động
+        scan_speed = self.slider_scan_speed.value()
+        search_delay = self.slider_search_delay.value() / 10.0
+        align_tol = self.slider_align.value()
+        turn_sens = self.slider_turn_sens.value() / 10.0
+        stop_dist = self.slider_stop_dist.value()
+        
+        self.app.apply_auto_config(speed, conf, spin_enabled, scan_dur, wait_dur, verify_time, 
+                                   scan_speed, search_delay, align_tol, turn_sens, stop_dist)

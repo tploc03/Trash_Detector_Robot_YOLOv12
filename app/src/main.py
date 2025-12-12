@@ -39,7 +39,7 @@ class DetectionCompleteDialog(QDialog):
     """Dialog thông báo hoàn thành"""
     def __init__(self, trash_name, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("🎯 Mission Complete")
+        self.setWindowTitle("Done")
         self.setModal(True)
         self.setFixedSize(400, 250)
         self.setStyleSheet("""
@@ -59,7 +59,7 @@ class DetectionCompleteDialog(QDialog):
         lbl_icon.setStyleSheet("font-size: 48px;")
         layout.addWidget(lbl_icon)
         
-        lbl_title = QLabel(f"COLLECTED: {trash_name.upper()}")
+        lbl_title = QLabel(f"{trash_name.upper()}")
         lbl_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         lbl_title.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
         layout.addWidget(lbl_title)
@@ -69,7 +69,7 @@ class DetectionCompleteDialog(QDialog):
         lbl_time.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(lbl_time)
         
-        btn_ok = QPushButton("OK - Return to Manual")
+        btn_ok = QPushButton("Return to Manual")
         btn_ok.clicked.connect(self.accept)
         layout.addWidget(btn_ok)
 
@@ -83,6 +83,7 @@ class RobotApp(QMainWindow):
             
         self.setWindowTitle("Trash Detector Robot - STABLE")
         self.resize(1280, 800)
+        self.setMinimumSize(900, 600)  # 🆕 Min window size để responsive work
         self.setStyleSheet(MAIN_THEME)
         
         # --- CONFIG ---
@@ -93,6 +94,9 @@ class RobotApp(QMainWindow):
         
         self.keys_pressed = set()
         self.is_processing = False
+        
+        # 🆕 FIX #1: Flash khởi tạo = 1 (vì ESP32 boot với flash=ON)
+        self.flash_state = 1
         
         # Fix lỗi đường dẫn Model
         base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -159,7 +163,8 @@ class RobotApp(QMainWindow):
         self.lbl_video = QLabel("NO SIGNAL")
         self.lbl_video.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.lbl_video.setStyleSheet("background: #000; border: 2px solid #0078D4; color: #555;")
-        self.lbl_video.setMinimumSize(640, 480)
+        # 🆕 FIX: Responsive - dùng setMinimumSize với giá trị nhỏ hơn, Expanding size policy
+        self.lbl_video.setMinimumSize(320, 240)
         self.lbl_video.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         left_lay.addWidget(self.lbl_video, 1)
         
@@ -174,12 +179,17 @@ class RobotApp(QMainWindow):
         right_lay = QVBoxLayout()
         right_container = QWidget()
         right_container.setLayout(right_lay)
-        right_container.setMinimumWidth(380)
+        # 🆕 FIX: Responsive - giảm minimum width từ 380 -> 280, add max width để co dãn tốt
+        right_container.setMinimumWidth(280)
+        right_container.setMaximumWidth(500)
+        right_container.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
 
         # Sensor
         grp_sens = QGroupBox("RADAR")
         # ... (Giữ nguyên style) ...
-        grp_sens.setMinimumHeight(160)
+        # 🆕 FIX: Responsive - giảm minimum height từ 160 -> 100
+        grp_sens.setMinimumHeight(100)
+        grp_sens.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         g_lay = QHBoxLayout()
         self.box_L = SensorBox("LEFT")
         self.box_F = SensorBox("FRONT")
@@ -195,7 +205,8 @@ class RobotApp(QMainWindow):
         
         self.btn_mode = QPushButton("SWITCH TO AUTO MODE")
         self.btn_mode.setCheckable(True)
-        self.btn_mode.setMinimumHeight(50)
+        # 🆕 FIX: Responsive - giảm minimum height từ 50 -> 40
+        self.btn_mode.setMinimumHeight(40)
         self.btn_mode.clicked.connect(self.request_toggle_mode)
         op_lay.addWidget(self.btn_mode)
 
@@ -226,36 +237,70 @@ class RobotApp(QMainWindow):
 
     def update_cam_ip(self, url):
         self.show_loading(f"CAM URL: {url}", 1000)
+        # Reset AI mode và reconnect video thread
+        print(f"Updating camera URL: {url}")
+        
+        # Tắt AI mode tạm thời để reset model
+        was_auto = self.is_auto
+        if was_auto:
+            self.video_thread.set_ai_mode(False)
+        
+        # Update camera URL
         self.video_thread.update_source(url)
+        
+        # Đợi reconnect hoàn thành
+        QTimer.singleShot(1500, lambda: self._resume_after_cam_update(was_auto))
+    
+    def _resume_after_cam_update(self, was_auto):
+        """Helper: Resume AI mode sau khi camera reconnect"""
+        if was_auto:
+            self.video_thread.set_ai_mode(True)
+            print("Camera reconnected, AI mode resumed")
 
     def apply_manual_config(self, speed):
         self.man_speed = speed
         self.show_loading("MANUAL CONFIG SET", 800)
 
-    def apply_auto_config(self, speed, conf, spin_enabled, scan_dur, wait_dur, verify_time):
+    def apply_auto_config(self, speed, conf, spin_enabled, scan_dur, wait_dur, verify_time, 
+                          scan_speed, search_delay, align_tol, turn_sens, stop_dist):
         self.auto_speed = speed
         self.auto_conf = conf
         self.robot.base_speed = speed
+        
+        # 🆕 Cập nhật tất cả parameters
         self.robot.SCAN_TURN_DURATION = scan_dur
         self.robot.SCAN_WAIT_DURATION = wait_dur
         self.robot.CONFIRM_TIME = verify_time
+        self.robot.SCAN_SPEED = scan_speed
+        self.robot.SEARCH_DELAY = search_delay
+        self.robot.ALIGN_TOLERANCE = align_tol
+        self.robot.TURN_SENSITIVITY = turn_sens
+        self.robot.STOP_DISTANCE = stop_dist
         
         if self.is_auto:
             self.video_thread.update_conf(conf)
             self.robot.enable_search(spin_enabled)
+        
+        # Log cập nhật settings
+        print(f"⚙️  AUTO CONFIG UPDATED:")
+        print(f"   Speed: {speed}, Confidence: {conf:.2f}")
+        print(f"   Scan: {scan_dur}s / Wait: {wait_dur}s / Verify: {verify_time}s")
+        print(f"   Scan Speed: {scan_speed}%, Delay: {search_delay}s")
+        print(f"   Align Tol: {align_tol}px, Turn Sens: {turn_sens}, Stop: {stop_dist}cm")
         
         self.show_loading("AUTO CONFIG APPLIED", 1000)
 
     def toggle_flash(self, stream_url):
         try:
             base_url = stream_url.replace("/stream", "").split(":81")[0]
-            if not hasattr(self, 'flash_state'): self.flash_state = 0
-            self.flash_state = 1 - self.flash_state
+            self.flash_state = 1 - self.flash_state  # Toggle state
             
             # Gửi request trong thread riêng hoặc dùng timeout cực ngắn
             requests.get(f"{base_url}/control?var=flash&val={self.flash_state}", timeout=0.5)
             self.show_loading(f"FLASH {'ON' if self.flash_state else 'OFF'}", 500)
-        except Exception:
+            print(f"Flash toggled to: {self.flash_state}")
+        except Exception as e:
+            print(f"Flash Error: {e}")
             self.show_loading("FLASH ERROR", 500)
 
     # --- MODE CONTROL ---
@@ -277,9 +322,16 @@ class RobotApp(QMainWindow):
             self.sound.play_auto()
             
             # Config Robot
-            self.robot.state = RobotState.SEARCH_STEP if self.panel_set.chk_spin.isChecked() else RobotState.IDLE
-            self.robot.search_enabled = self.panel_set.chk_spin.isChecked()
+            spin_enabled = self.panel_set.chk_spin.isChecked()
+            self.robot.state = RobotState.SEARCH_STEP if spin_enabled else RobotState.IDLE
+            self.robot.search_enabled = spin_enabled
             self.robot.state_timer = __import__('time').time()
+            
+            # 🆕 Log rõ ràng chế độ nào
+            if spin_enabled:
+                print("AUTO MODE: SEARCH ROTATION - Robot will spin to find trash")
+            else:
+                print("AUTO MODE: STANDING DETECTION - Robot waits for trash in current view")
             
             self.video_thread.update_conf(self.auto_conf)
             self.auto_timer.start(50)
@@ -311,8 +363,8 @@ class RobotApp(QMainWindow):
         self.panel_auto.lbl_info.setText(info)
         
         # Update State Label Color
-        self.lbl_state.setText(self.robot.state.value)
-        self.lbl_state.setStyleSheet(f"color: {self.robot.get_state_color()}; font-weight: bold; margin-left: 15px; background: #222; padding: 2px 8px; border-radius: 4px;")
+        # self.lbl_state.setText(self.robot.state.value)
+        # self.lbl_state.setStyleSheet(f"color: {self.robot.get_state_color()}; font-weight: bold; margin-left: 15px; background: #222; padding: 2px 8px; border-radius: 4px;")
 
         if self.robot.state == RobotState.REACHED:
             self.handle_trash_reached()
@@ -322,7 +374,13 @@ class RobotApp(QMainWindow):
 
     def handle_ai_detection(self, result):
         if self.is_auto:
-            self.robot.update_detection(result.get('detections', []))
+            detections = result.get('detections', [])
+            # DEBUG: In ra để xem có nhận detection không
+            if detections:
+                print(f"Auto Mode - Received {len(detections)} detections")
+                for d in detections:
+                    print(f"   - {d['label']} ({d['conf']:.2f}) at x={d['center_x']}")
+            self.robot.update_detection(detections)
 
     def handle_trash_reached(self):
         """Xử lý khi đến đích an toàn"""
@@ -343,7 +401,12 @@ class RobotApp(QMainWindow):
         self.switch_to_manual_after_detection()
 
     def switch_to_manual_after_detection(self):
-        self.set_mode(False) # Gọi hàm set_mode để reset sạch sẽ
+        # Properly uncheck AUTO button khi switch về manual
+        self.btn_mode.blockSignals(True)  # Tránh infinite loop
+        self.btn_mode.setChecked(False)   # Uncheck button
+        self.btn_mode.blockSignals(False)
+        
+        self.set_mode(False)  # Switch mode
         self.lbl_info.setText("Mission Complete - Switched to Manual")
 
     # --- SENSORS & MANUAL ---

@@ -49,8 +49,9 @@ class VideoThread(QThread):
         self.frame_count = 0
         self.fps = 0
         self.last_fps_time = time.time()
-        self.process_every_n_frames = 4
+        self.process_every_n_frames = 2  # 🆕 Giảm từ 4 -> 2 để detection nhanh hơn (chạy mỗi 2 frame)
         self.ai_frame_counter = 0
+        self.detection_count = 0  # 🆕 Debug: Đếm số detection đã chạy
 
     def update_source(self, url):
         if url != self.stream_url:
@@ -74,9 +75,12 @@ class VideoThread(QThread):
                 # -----------------------------------------
                 
                 print("✅ Model loaded successfully")
+                print(f"🎯 AI Detection ENABLED - Running on every {self.process_every_n_frames} frames")
             except Exception as e:
                 print(f"❌ Model Error: {e}")
                 self.ai_enabled = False # Tắt AI nếu load lỗi
+        elif not enabled:
+            print("⏸️  AI Detection DISABLED")
 
     def run(self):
         print(f"🚀 Video Thread Starting with: {self.stream_url}")
@@ -144,6 +148,10 @@ class VideoThread(QThread):
                                           cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
                                           
                         if detections:
+                            self.detection_count += 1
+                            # 🆕 Log detection một lần mỗi 30 frame
+                            if self.detection_count % 30 == 0:
+                                print(f"🔍 Detection #{self.detection_count}: Found {len(detections)} object(s)")
                             self.ai_results_signal.emit({'detections': detections})
                             
                     except Exception as e:

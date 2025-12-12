@@ -6,7 +6,6 @@ import types
 from ultralytics import YOLO
 
 def fix_aattn_compat(m):
-    """Sửa lỗi tương thích cho module AAttn của YOLOv12"""
     try:
         model_to_scan = m.model if hasattr(m, 'model') else m
         for mod in model_to_scan.modules():
@@ -20,31 +19,29 @@ def fix_aattn_compat(m):
                         return torch.cat([qk_out, v_out], dim=1)
                     # Gán hàm mới vào module (Monkey patching)
                     mod.qkv = types.MethodType(_qkv, mod)
-        print("✅ Applied AAttn compatibility fix.")
+        print("Applied AAttn compatibility fix.")
     except Exception as e:
-        print(f"⚠️ Could not apply AAttn fix: {e}")
+        print(f"Could not apply AAttn fix: {e}")
 
 class TrashDetector:
     def __init__(self, model_path, conf_thres=0.25):
         if not os.path.exists(model_path):
-            print(f"❌ Error: Model file not found at {model_path}")
+            print(f"Error: Model file not found at {model_path}")
             self.model = None
         else:
-            print(f"🔄 Loading AI Model: {model_path}...")
+            print(f"Loading AI Model: {model_path}...")
             try:
                 self.model = YOLO(model_path)
                 
-                # --- QUAN TRỌNG: DÒNG NÀY PHẢI ĐƯỢC CHẠY ---
                 fix_aattn_compat(self.model) 
                 # --------------------------------------------
                 
-                print("✅ Model loaded successfully!")
+                print("Model loaded")
             except Exception as e:
-                print(f"❌ Error loading model: {e}")
+                print(f"Error loading model: {e}")
                 self.model = None
         
         self.conf_thres = conf_thres
-        # Lấy danh sách tên class an toàn
         if self.model and hasattr(self.model, 'names'):
             self.classes = self.model.names
         else:
@@ -54,15 +51,12 @@ class TrashDetector:
         if self.model is None:
             return frame, []
 
-        # YOLOv12 tự xử lý convert màu/resize, ta chỉ cần truyền frame vào
-        # Tuy nhiên để vẽ box đúng màu trên PyQt, ta cần convert BGR -> RGB trước khi vẽ
+        # convert BGR -> RGB before drawing boxes
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
         try:
-            # Predict
             results = self.model.predict(frame, conf=self.conf_thres, imgsz=640, verbose=False, stream=False)
             
-            # Vẽ bounding box lên frame
             annotated_frame = results[0].plot() 
             annotated_frame_rgb = cv2.cvtColor(annotated_frame, cv2.COLOR_BGR2RGB)
 
@@ -86,13 +80,12 @@ class TrashDetector:
             return annotated_frame_rgb, detections
             
         except AttributeError as e:
-            print(f"❌ Prediction Error: {e}")
-            # Nếu lỗi, trả về ảnh gốc để app không bị tắt
+            print(f"Prediction Error: {e}")
             return frame_rgb, []
         except Exception as e:
-            print(f"❌ Unexpected Error: {e}")
+            print(f"Unexpected Error: {e}")
             return frame_rgb, []
     
     def update_conf(self, val):
         self.conf_thres = val
-        print(f"🔧 AI Config Updated: Conf={self.conf_thres}")
+        print(f"AI Config Updated: Conf={self.conf_thres}")
