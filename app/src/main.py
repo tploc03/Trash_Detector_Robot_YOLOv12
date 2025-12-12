@@ -83,7 +83,6 @@ class RobotApp(QMainWindow):
             
         self.setWindowTitle("Trash Detector Robot - STABLE")
         self.resize(1280, 800)
-        self.setMinimumSize(900, 600)  # 🆕 Min window size để responsive work
         self.setStyleSheet(MAIN_THEME)
         
         # --- CONFIG ---
@@ -163,8 +162,7 @@ class RobotApp(QMainWindow):
         self.lbl_video = QLabel("NO SIGNAL")
         self.lbl_video.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.lbl_video.setStyleSheet("background: #000; border: 2px solid #0078D4; color: #555;")
-        # 🆕 FIX: Responsive - dùng setMinimumSize với giá trị nhỏ hơn, Expanding size policy
-        self.lbl_video.setMinimumSize(320, 240)
+        self.lbl_video.setMinimumSize(640, 480)
         self.lbl_video.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         left_lay.addWidget(self.lbl_video, 1)
         
@@ -179,17 +177,12 @@ class RobotApp(QMainWindow):
         right_lay = QVBoxLayout()
         right_container = QWidget()
         right_container.setLayout(right_lay)
-        # 🆕 FIX: Responsive - giảm minimum width từ 380 -> 280, add max width để co dãn tốt
-        right_container.setMinimumWidth(280)
-        right_container.setMaximumWidth(500)
-        right_container.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
+        right_container.setMinimumWidth(380)
 
         # Sensor
         grp_sens = QGroupBox("RADAR")
         # ... (Giữ nguyên style) ...
-        # 🆕 FIX: Responsive - giảm minimum height từ 160 -> 100
-        grp_sens.setMinimumHeight(100)
-        grp_sens.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        grp_sens.setMinimumHeight(160)
         g_lay = QHBoxLayout()
         self.box_L = SensorBox("LEFT")
         self.box_F = SensorBox("FRONT")
@@ -205,8 +198,7 @@ class RobotApp(QMainWindow):
         
         self.btn_mode = QPushButton("SWITCH TO AUTO MODE")
         self.btn_mode.setCheckable(True)
-        # 🆕 FIX: Responsive - giảm minimum height từ 50 -> 40
-        self.btn_mode.setMinimumHeight(40)
+        self.btn_mode.setMinimumHeight(50)
         self.btn_mode.clicked.connect(self.request_toggle_mode)
         op_lay.addWidget(self.btn_mode)
 

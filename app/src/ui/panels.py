@@ -87,8 +87,8 @@ class SettingsPanel(QWidget):
     def create_connection_tab(self):
         widget = QWidget()
         layout = QVBoxLayout()
-        layout.setSpacing(15)  # 🆕 FIX: Responsive - 20 -> 15
-        layout.setContentsMargins(20, 20, 20, 20)  # 🆕 FIX: Responsive - 30 -> 20
+        layout.setSpacing(20)
+        layout.setContentsMargins(30, 30, 30, 30)
 
         robot_label = QLabel("Robot IP Address")
         robot_label.setFont(QFont("Segoe UI", 11, QFont.Weight.Bold))
@@ -151,17 +151,17 @@ class SettingsPanel(QWidget):
     def create_manual_tab(self):
         widget = QWidget()
         layout = QVBoxLayout()
-        layout.setSpacing(15)  # 🆕 FIX: Responsive - 20 -> 15
-        layout.setContentsMargins(20, 20, 20, 20)  # 🆕 FIX: Responsive - 30 -> 20
+        layout.setSpacing(20)
+        layout.setContentsMargins(30, 30, 30, 30)
         
         l1 = QHBoxLayout()
         lbl_speed_title = QLabel("Speed:")
-        lbl_speed_title.setMinimumWidth(50)  # 🆕 FIX: Responsive - 80 -> 50
+        lbl_speed_title.setMinimumWidth(80)
         self.slider_man_speed = QSlider(Qt.Orientation.Horizontal)
         self.slider_man_speed.setRange(0, 255)
         self.slider_man_speed.setValue(80)
         lbl_speed = QLabel("80")
-        lbl_speed.setMinimumWidth(30)  # 🆕 FIX: Responsive - 40 -> 30
+        lbl_speed.setMinimumWidth(40)
         lbl_speed.setAlignment(Qt.AlignmentFlag.AlignRight)
         self.slider_man_speed.valueChanged.connect(lambda v: lbl_speed.setText(str(v)))
         l1.addWidget(lbl_speed_title)
@@ -182,29 +182,29 @@ class SettingsPanel(QWidget):
     def create_auto_tab(self):
         widget = QWidget()
         layout = QVBoxLayout()
-        layout.setSpacing(12)  # 🆕 FIX: Responsive - 15 -> 12
-        layout.setContentsMargins(15, 15, 15, 15)  # 🆕 FIX: Responsive - 20 -> 15
+        layout.setSpacing(15)
+        layout.setContentsMargins(20, 20, 20, 20)
         
         # --- NHÓM 1: CƠ BẢN ---
         l1 = QHBoxLayout()
         lbl_speed_title = QLabel("Speed:")
-        lbl_speed_title.setMinimumWidth(50)  # 🆕 FIX: Responsive - 80 -> 50
+        lbl_speed_title.setMinimumWidth(80)
         self.slider_auto_speed = QSlider(Qt.Orientation.Horizontal)
         self.slider_auto_speed.setRange(0, 255)
         self.slider_auto_speed.setValue(65)
         lbl_speed = QLabel("65")
-        lbl_speed.setMinimumWidth(30)  # 🆕 FIX: Responsive - 40 -> 30
+        lbl_speed.setMinimumWidth(40)
         self.slider_auto_speed.valueChanged.connect(lambda v: lbl_speed.setText(str(v)))
         l1.addWidget(lbl_speed_title); l1.addWidget(self.slider_auto_speed); l1.addWidget(lbl_speed)
         
         l2 = QHBoxLayout()
         lbl_conf_title = QLabel("AI Conf:")
-        lbl_conf_title.setMinimumWidth(50)  # 🆕 FIX: Responsive - 80 -> 50
+        lbl_conf_title.setMinimumWidth(80)
         self.slider_auto_conf = QSlider(Qt.Orientation.Horizontal)
         self.slider_auto_conf.setRange(10, 80)
         self.slider_auto_conf.setValue(20)
         lbl_conf = QLabel("20%")
-        lbl_conf.setMinimumWidth(30)  # 🆕 FIX: Responsive - 40 -> 30
+        lbl_conf.setMinimumWidth(40)
         self.slider_auto_conf.valueChanged.connect(lambda v: lbl_conf.setText(f"{v}%"))
         l2.addWidget(lbl_conf_title); l2.addWidget(self.slider_auto_conf); l2.addWidget(lbl_conf)
 

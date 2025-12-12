@@ -1,10 +1,10 @@
-path: D:/LocTP/6_class_dataset_v7
+path: ai/data/final_yolo_dataset
 
 train: images/train
 val: images/val
 test: images/test
 
-nc: 6
+nc: 5
 
 names:
   0: battery
