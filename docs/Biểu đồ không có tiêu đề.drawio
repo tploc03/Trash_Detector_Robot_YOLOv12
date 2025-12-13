@@ -1,6 +1,6 @@
 <mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0" version="29.2.7">
   <diagram id="v3BI6nxycLmaF-nQGOlV" name="Trang-1">
-    <mxGraphModel dx="2138" dy="407" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+    <mxGraphModel dx="2526" dy="651" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -711,56 +711,44 @@
           <mxGeometry height="30" width="106" x="2131" y="2298" as="geometry" />
         </mxCell>
         <mxCell id="x7Vn9ZFMEA2iRjXJ-bqV-1" parent="1" style="swimlane;horizontal=0;whiteSpace=wrap;html=1;startSize=30;fillColor=#f5f5f5;fontColor=#333333;strokeColor=#666666;fontFamily=Times New Roman;fontSize=15;" value="Vi điều khiển ESP32 (Dual-Core Architecture)" vertex="1">
-          <mxGeometry height="404" width="661" x="1455" y="1214" as="geometry" />
+          <mxGeometry height="452" width="628" x="1409" y="1226" as="geometry" />
         </mxCell>
         <mxCell id="x7Vn9ZFMEA2iRjXJ-bqV-22" parent="x7Vn9ZFMEA2iRjXJ-bqV-1" style="swimlane;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontFamily=Times New Roman;fontSize=15;" value="Core 0: Protocol CPU (PRO_CPU)" vertex="1">
-          <mxGeometry height="360" width="260" x="40" y="20" as="geometry" />
+          <mxGeometry height="421" width="245" x="40" y="20" as="geometry" />
         </mxCell>
-        <mxCell id="x7Vn9ZFMEA2iRjXJ-bqV-23" parent="x7Vn9ZFMEA2iRjXJ-bqV-22" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontFamily=Times New Roman;fontSize=15;" value="WiFi Stack &amp;amp; TCP/IP" vertex="1">
-          <mxGeometry height="40" width="180" x="40" y="50" as="geometry" />
-        </mxCell>
-        <mxCell id="x7Vn9ZFMEA2iRjXJ-bqV-24" parent="x7Vn9ZFMEA2iRjXJ-bqV-22" style="rounded=1;whiteSpace=wrap;html=1;fontStyle=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontFamily=Times New Roman;fontSize=15;" value="Task Network (UDP Server)" vertex="1">
-          <mxGeometry height="60" width="180" x="40" y="130" as="geometry" />
-        </mxCell>
-        <mxCell id="x7Vn9ZFMEA2iRjXJ-bqV-25" parent="x7Vn9ZFMEA2iRjXJ-bqV-22" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;fontFamily=Times New Roman;fontSize=15;" value="JSON Deserialization" vertex="1">
-          <mxGeometry height="40" width="150" x="55" y="230" as="geometry" />
-        </mxCell>
-        <mxCell id="x7Vn9ZFMEA2iRjXJ-bqV-48" edge="1" parent="x7Vn9ZFMEA2iRjXJ-bqV-22" source="x7Vn9ZFMEA2iRjXJ-bqV-23" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;fontFamily=Times New Roman;fontSize=15;" target="x7Vn9ZFMEA2iRjXJ-bqV-24">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="x7Vn9ZFMEA2iRjXJ-bqV-49" edge="1" parent="x7Vn9ZFMEA2iRjXJ-bqV-22" source="x7Vn9ZFMEA2iRjXJ-bqV-24" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;fontFamily=Times New Roman;fontSize=15;" target="x7Vn9ZFMEA2iRjXJ-bqV-25">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="x7Vn9ZFMEA2iRjXJ-bqV-63" parent="x7Vn9ZFMEA2iRjXJ-bqV-22" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=15;fontFamily=Times New Roman;" value="&lt;font style=&quot;font-size: 12px;&quot;&gt;Lệnh điều khiển&lt;/font&gt;" vertex="1">
-          <mxGeometry height="20" width="102" x="167" y="206" as="geometry" />
+        <mxCell id="x7Vn9ZFMEA2iRjXJ-bqV-53" parent="x7Vn9ZFMEA2iRjXJ-bqV-22" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Times New Roman;fontSize=15;" value="Sonar Manager (Cảm biến)" vertex="1">
+          <mxGeometry height="40" width="180" x="30" y="206.5" as="geometry" />
         </mxCell>
         <mxCell id="x7Vn9ZFMEA2iRjXJ-bqV-51" parent="x7Vn9ZFMEA2iRjXJ-bqV-1" style="swimlane;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontFamily=Times New Roman;fontSize=15;" value="Core 1: Application CPU (APP_CPU)" vertex="1">
-          <mxGeometry height="360" width="260" x="388" y="20" as="geometry" />
+          <mxGeometry height="420" width="318" x="302" y="20" as="geometry" />
         </mxCell>
         <mxCell id="x7Vn9ZFMEA2iRjXJ-bqV-52" parent="x7Vn9ZFMEA2iRjXJ-bqV-51" style="rounded=1;whiteSpace=wrap;html=1;fontStyle=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontFamily=Times New Roman;fontSize=15;" value="Task Control (Failsafe &amp;amp; PWM)" vertex="1">
-          <mxGeometry height="60" width="180" x="40" y="130" as="geometry" />
-        </mxCell>
-        <mxCell id="x7Vn9ZFMEA2iRjXJ-bqV-53" parent="x7Vn9ZFMEA2iRjXJ-bqV-51" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Times New Roman;fontSize=15;" value="Sonar Manager (Cảm biến)" vertex="1">
-          <mxGeometry height="40" width="180" x="40" y="50" as="geometry" />
+          <mxGeometry height="60" width="180" x="72" y="271" as="geometry" />
         </mxCell>
         <mxCell id="x7Vn9ZFMEA2iRjXJ-bqV-54" parent="x7Vn9ZFMEA2iRjXJ-bqV-51" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Times New Roman;fontSize=15;" value="Motor Driver (L298N)" vertex="1">
-          <mxGeometry height="40" width="180" x="40" y="270" as="geometry" />
-        </mxCell>
-        <mxCell id="x7Vn9ZFMEA2iRjXJ-bqV-55" edge="1" parent="x7Vn9ZFMEA2iRjXJ-bqV-51" source="x7Vn9ZFMEA2iRjXJ-bqV-53" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;fontFamily=Times New Roman;fontSize=15;" target="x7Vn9ZFMEA2iRjXJ-bqV-52">
-          <mxGeometry relative="1" as="geometry" />
+          <mxGeometry height="40" width="180" x="72" y="359" as="geometry" />
         </mxCell>
         <mxCell id="x7Vn9ZFMEA2iRjXJ-bqV-56" edge="1" parent="x7Vn9ZFMEA2iRjXJ-bqV-51" source="x7Vn9ZFMEA2iRjXJ-bqV-52" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;fontFamily=Times New Roman;fontSize=15;" target="x7Vn9ZFMEA2iRjXJ-bqV-54">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="0SpagHzZGqHf25BCX4_x-2" edge="1" parent="x7Vn9ZFMEA2iRjXJ-bqV-1" source="x7Vn9ZFMEA2iRjXJ-bqV-58" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="x7Vn9ZFMEA2iRjXJ-bqV-52">
+        <mxCell id="x7Vn9ZFMEA2iRjXJ-bqV-23" parent="x7Vn9ZFMEA2iRjXJ-bqV-51" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontFamily=Times New Roman;fontSize=15;" value="WiFi Stack &amp;amp; TCP/IP" vertex="1">
+          <mxGeometry height="40" width="180" x="72" y="33" as="geometry" />
+        </mxCell>
+        <mxCell id="x7Vn9ZFMEA2iRjXJ-bqV-24" parent="x7Vn9ZFMEA2iRjXJ-bqV-51" style="rounded=1;whiteSpace=wrap;html=1;fontStyle=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontFamily=Times New Roman;fontSize=15;" value="Task Network (UDP Server)" vertex="1">
+          <mxGeometry height="60" width="180" x="72" y="110" as="geometry" />
+        </mxCell>
+        <mxCell id="x7Vn9ZFMEA2iRjXJ-bqV-48" edge="1" parent="x7Vn9ZFMEA2iRjXJ-bqV-51" source="x7Vn9ZFMEA2iRjXJ-bqV-23" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;fontFamily=Times New Roman;fontSize=15;" target="x7Vn9ZFMEA2iRjXJ-bqV-24">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="x7Vn9ZFMEA2iRjXJ-bqV-58" parent="x7Vn9ZFMEA2iRjXJ-bqV-1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#e1d5e7;strokeColor=#9673a6;fontFamily=Times New Roman;fontSize=15;" value="Shared Memory / Queue" vertex="1">
-          <mxGeometry height="79" width="91" x="297" y="207" as="geometry" />
+        <mxCell id="x7Vn9ZFMEA2iRjXJ-bqV-25" parent="x7Vn9ZFMEA2iRjXJ-bqV-51" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;fontFamily=Times New Roman;fontSize=15;" value="JSON Deserialization" vertex="1">
+          <mxGeometry height="40" width="150" x="87" y="199" as="geometry" />
         </mxCell>
-        <mxCell id="x7Vn9ZFMEA2iRjXJ-bqV-60" edge="1" parent="x7Vn9ZFMEA2iRjXJ-bqV-1" source="x7Vn9ZFMEA2iRjXJ-bqV-25" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontFamily=Times New Roman;fontSize=15;" target="x7Vn9ZFMEA2iRjXJ-bqV-58">
+        <mxCell id="x7Vn9ZFMEA2iRjXJ-bqV-49" edge="1" parent="x7Vn9ZFMEA2iRjXJ-bqV-51" source="x7Vn9ZFMEA2iRjXJ-bqV-24" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;fontFamily=Times New Roman;fontSize=15;" target="x7Vn9ZFMEA2iRjXJ-bqV-25">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="x7Vn9ZFMEA2iRjXJ-bqV-60" edge="1" parent="x7Vn9ZFMEA2iRjXJ-bqV-51" source="x7Vn9ZFMEA2iRjXJ-bqV-25" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontFamily=Times New Roman;fontSize=15;" target="x7Vn9ZFMEA2iRjXJ-bqV-52">
           <mxGeometry relative="1" as="geometry">
-            <mxPoint x="180" y="250" as="sourcePoint" />
+            <mxPoint x="-208" y="230" as="sourcePoint" />
           </mxGeometry>
         </mxCell>
         <mxCell id="x7Vn9ZFMEA2iRjXJ-bqV-64" parent="1" style="swimlane;html=1;childLayout=stackLayout;resizeParent=1;resizeParentMax=0;startSize=20;horizontal=1;horizontalStack=0;fillColor=#f5f5f5;fontColor=#333333;strokeColor=#666666;fontSize=15;" value="PC Control Application (Python / PyQt6)" vertex="1">

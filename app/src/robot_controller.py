@@ -101,23 +101,23 @@ class RobotController:
 
         # --- STATE MACHINE ---
 
+        elif self.state == RobotState.SEARCH_WAIT:
+            if now - self.state_timer > self.SEARCH_DELAY:
+                self.state = RobotState.SEARCH_STEP
+                self.state_timer = now
+                return -self.SCAN_SPEED, self.SCAN_SPEED, "Step Turn"
+            
+            remaining = self.SEARCH_DELAY - (now - self.state_timer)
+            return 0, 0, f"Searching ({remaining:.1f}s)..."
+
         if self.state == RobotState.SEARCH_STEP:
             if now - self.state_timer > self.SCAN_TURN_DURATION:
                 self.state = RobotState.SEARCH_WAIT
                 self.state_timer = now
-                return 0, 0, "Wait"
+                return 0, 0, "Scanning"
             
             # Quay trái (L-, R+)
-            return -self.SCAN_SPEED, self.SCAN_SPEED, "Step Turn" 
-
-        elif self.state == RobotState.SEARCH_WAIT:
-            if now - self.search_started_time < self.SEARCH_DELAY:
-                return 0, 0, f"Wait before scan ({self.SEARCH_DELAY - (now - self.search_started_time):.1f}s)..."
-            
-            if now - self.state_timer > self.SCAN_WAIT_DURATION:
-                self.state = RobotState.SEARCH_STEP
-                self.state_timer = now
-            return 0, 0, "Scanning"
+            return -self.SCAN_SPEED, self.SCAN_SPEED, "Step Turn"
 
         elif self.state == RobotState.VERIFYING:
             duration = now - self.first_seen_time
