@@ -58,8 +58,8 @@ def extract_frames(video_dir, output_dir, frame_interval=3):
     print(f"HOÀN TẤT! Tổng cộng đã lưu {total_images_saved} ảnh vào thư mục '{output_dir}'.")
 
 # --- CẤU HÌNH ĐƯỜNG DẪN TẠI ĐÂY ---
-input_folder = "ai/cam/plastic"   # Tên thư mục chứa video quay được
-output_folder = "ai/data/final_dataset_image/plastic"   # Tên thư mục muốn lưu ảnh
+input_folder = "ai/data/cam1/plastic"   # Tên thư mục chứa video quay được
+output_folder = "ai/data/cam1/picture/plastic"   # Tên thư mục muốn lưu ảnh
 frames_step = 4
 
 # Chạy hàm

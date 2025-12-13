@@ -2,12 +2,12 @@ import os
 import shutil
 import random
 
-LABEL_DIR = "ai/data/final_dataset_label"
+LABEL_DIR = "ai/data/cam1/label"
 
 # Thư mục ảnh
-IMAGE_DIR = "ai/data/final_dataset_image"
+IMAGE_DIR = "ai/data/cam1/picture"
 
-OUTPUT_DIR = "ai/data/final_yolo_dataset"
+OUTPUT_DIR = "ai/data/final_yolo_trash_dataset111111111"
 
 CLASSES = [
     "battery",
@@ -18,8 +18,8 @@ CLASSES = [
     "plastic"
 ]
 
-TRAIN_RATIO = 0.8
-VAL_RATIO = 0.2
+TRAIN_RATIO = 0.7
+VAL_RATIO = 0.3
 # TEST_RATIO = 0.05
 
 def ensure_dirs():

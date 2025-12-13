@@ -3,11 +3,9 @@ import time
 import os
 from datetime import datetime
 
-# --- CẤU HÌNH ---
-# Thay IP này bằng IP thực tế của Camera bạn (xem trong App hoặc Serial Monitor)
 STREAM_URL = "http://10.230.248.174:81/stream" 
-SAVE_FOLDER = "ai/cam/glass"  # Thư mục lưu video
-CLIP_DURATION = 3  # Độ dài mỗi clip (giây)
+SAVE_FOLDER = "ai/data/cam1/plastic"
+CLIP_DURATION = 0.5  # Độ dài mỗi clip (giây)
 
 # Tạo thư mục lưu nếu chưa có
 if not os.path.exists(SAVE_FOLDER):
