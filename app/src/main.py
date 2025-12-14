@@ -283,12 +283,14 @@ class RobotApp(QMainWindow):
             self.video_thread.set_ai_mode(True)
             print("Camera reconnected, AI mode resumed")
 
-    def apply_manual_config(self, speed):
+    def apply_manual_config(self, speed, motor_balance=1.0):
         self.man_speed = speed
+        self.robot.MOTOR_LEFT_BOOST = motor_balance
+        self.robot.MOTOR_RIGHT_BOOST = 1.0 / motor_balance if motor_balance != 0 else 1.0
         self.show_loading("MANUAL CONFIG SET", 800)
 
     def apply_auto_config(self, speed, conf, spin_enabled, scan_dur, wait_dur, verify_time,
-                      scan_speed, search_delay, align_tol, turn_sens, stop_dist, align_speed, timeout):
+                      scan_speed, search_delay, align_tol, turn_sens, stop_dist, align_speed, timeout, motor_left_boost=1.0):
         self.auto_speed = speed
         self.auto_conf = conf
         self.robot.base_speed = speed
@@ -303,6 +305,9 @@ class RobotApp(QMainWindow):
         self.robot.ALIGN_TOLERANCE = align_tol
         self.robot.TURN_SENSITIVITY = turn_sens
         self.robot.STOP_DISTANCE = stop_dist
+        # ✅ NEW: Motor balance
+        self.robot.MOTOR_LEFT_BOOST = motor_left_boost
+        self.robot.MOTOR_RIGHT_BOOST = 1.0 / motor_left_boost  # Inverse để giữ power
         
         if self.is_auto:
             self.video_thread.update_conf(conf)
@@ -313,6 +318,7 @@ class RobotApp(QMainWindow):
         print(f"   Scan: {scan_dur}s / Wait: {wait_dur}s / Verify: {verify_time}s")
         print(f"   Scan Speed: {scan_speed}%, Delay: {search_delay}s")
         print(f"   Align Tol: {align_tol}px, Turn Sens: {turn_sens}, Stop: {stop_dist}cm")
+        print(f"   Motor Balance: L={self.robot.MOTOR_LEFT_BOOST:.2f}, R={self.robot.MOTOR_RIGHT_BOOST:.2f}")
         
         self.show_loading("AUTO CONFIG APPLIED", 1000)
 

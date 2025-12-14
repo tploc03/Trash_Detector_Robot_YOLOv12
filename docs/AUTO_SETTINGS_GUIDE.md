@@ -1,53 +1,317 @@
-# ⚙️ Auto Mode Settings - Hướng Dẫn Chi Tiết
+# 🎮 Hướng dẫn Chi Tiết AUTO MODE Parameters
 
-## 🎚️ Các Settings Mới Trong AUTO Tab
+## 📊 Sơ đồ Scan Mode (Enable Scan Mode = ON)
 
-### **Nhóm 1: CƠ BẢN** (Basic)
+```
+┌─────────────────────────────────────────┐
+│ Bắt đầu Scan Mode                       │
+└──────────────┬──────────────────────────┘
+               │
+               ▼
+    ┌──────────────────────┐
+    │ SEARCH_WAIT State    │ ◄─┐
+    │ (Đứng yên chờ)       │  │
+    │ Thời gian: SEARCH_DELAY │
+    │ ❌ không phát hiện     │  │
+    └──────────────┬────────┘  │
+                   │            │
+                   │ Hết timeout│
+                   │            │
+                   ▼            │
+    ┌──────────────────────┐   │
+    │ SEARCH_STEP State    │   │
+    │ (Quay tìm)           │   │
+    │ Thời gian: SCAN_TURN_DURATION
+    │ ❓ Có tìm thấy không? │   │
+    └────┬─────────────────┘   │
+         │                      │
+         ├─ ✅ Có: VERIFYING    │
+         │                      │
+         └─ ❌ Không: quay lại──┘
+                                 (loop lại)
 
-- **Speed (0-255):** Tốc độ chuyển động của robot
-  - Mặc định: 65
-  - Khuyến cáo: 50-80
-- **AI Conf (10%-80%):** Độ tin cậy để phát hiện rác
-
-  - Mặc định: 20%
-  - Thấp (10-20%): Dễ detect nhưng nhiễu
-  - Cao (40-60%): Ít nhiễu nhưng dễ miss
-
-- **Enable Scan Mode:** Bật/tắt chế độ xoay tìm kiếm
-  - ✅ Bật: Robot xoay 360° tìm rác
-  - ❌ Tắt: Robot đứng yên, camera quét frame
-
----
-
-### **Nhóm 2: CHIẾN THUẬT QUAY** (Step & Scan Tuning)
-
-- **Step Turn Time (0.1s - 5.0s):** Thời gian robot xoay mỗi bước
-
-  - Mặc định: 0.4s
-  - **Tăng lên:** Robot xoay chậm hơn (phát hiện tốt hơn)
-  - **Giảm xuống:** Robot xoay nhanh hơn (quét nhanh hơn)
-
-- **Wait/Scan Time (0.1s - 5.0s):** Thời gian robot dừng để camera scan frame
-
-  - Mặc định: 1.0s
-  - **Tăng lên:** Camera có nhiều thời gian nhìn (phát hiện tốt)
-  - **Giảm xuống:** Quá trình scan nhanh hơn
-
-- **Verify Time (0.1s - 5.0s):** Thời gian cần thấy rác liên tục trước khi xác nhận
-  - Mặc định: 2.0s
-  - **Tăng lên:** Tránh false positive (nhưng chậm hơn)
-  - **Giảm xuống:** Phản ứng nhanh (nhưng dễ false positive)
+✅ Phát hiện rác:
+   SEARCH_STEP/WAIT → VERIFYING → ALIGNING → CHASING → REACHED
+```
 
 ---
 
-### **Nhóm 3: CHUYỂN ĐỘNG & CẢM BIẾN** (Movement & Sensor Tuning) ⭐ MỚI
+## 🔧 Chi tiết từng Parameter
 
-#### **Scan Speed (10% - 100%)**
+### **📍 NHÓM 1: CƠ BẢN**
 
-Tốc độ quay khi tìm kiếm (chế độ Search)
+#### **Speed** (0-255)
 
-- Mặc định: 90%
-- **Tăng lên (90-100%):** Quay nhanh → Scan nhanh nhưng dễ miss
+- **Giá trị mặc định**: 65
+- **Ý nghĩa**: Tốc độ chạy của xe khi đi vào rác (PWM motor)
+- **Ảnh hưởng**:
+  - Thấp (20-40): Xe chạy chậm, chính xác hơn
+  - Trung bình (60-80): Cân bằng
+  - Cao (100-150): Xe chạy nhanh, rủi ro va chạm
+- **Khuyến cáo**: 60-80 cho phòng trong nhà
+
+#### **AI Conf** (10%-80%)
+
+- **Giá trị mặc định**: 20%
+- **Ý nghĩa**: Độ tin cậy của AI để coi là phát hiện đúng
+- **Ảnh hưởng**:
+  - Thấp (10%): Dễ phát hiện nhưng có thể sai (false positive)
+  - Trung bình (20%): Cân bằng ✅
+  - Cao (50%+): Khó phát hiện, có thể bỏ lỡ rác
+- **Khuyến cáo**: 20% là tốt
+
+#### **Enable Scan Mode** (Checkbox)
+
+- **OFF** (mặc định): Xe đứng im chờ rác xuất hiện trong frame
+
+  - Phù hợp: Phòng nhỏ, rác gần
+  - Logic: `IDLE → (detect) → VERIFYING → ALIGNING → CHASING → REACHED`
+
+- **ON**: Xe xoay tìm rác
+  - Phù hợp: Phòng lớn, rác xa
+  - Logic: `SEARCH_WAIT → SEARCH_STEP (xoay) → SEARCH_WAIT → ...`
+
+---
+
+### **📍 NHÓM 2: CHIẾN THUẬT SCAN (Step - Scan)**
+
+#### **Step Turn** (0.1s - 5.0s)
+
+- **Giá trị mặc định**: 0.4s
+- **Ý nghĩa**: Thời gian xoay **mỗi lần**
+- **Ảnh hưởng**:
+  - Ngắn (0.2s): Xoay từng chút, quét kỹ nhưng lâu
+  - Trung bình (0.4s): Cân bằng ✅
+  - Dài (0.8s): Xoay nhiều, quét nhanh nhưng có thể bỏ lỡ
+- **Công thức**: Một vòng 360° ≈ 0.4s × (360/25°) ≈ 5.8 giây
+
+#### **Wait/Scan** (0.1s - 5.0s)
+
+- **Giá trị mặc định**: 1.0s
+- **⚠️ Hiện tại không dùng trong logic**
+- **Tương lai**: Có thể dùng để tăng thời gian chờ giữa các vòng
+
+#### **Verify** (0.1s - 5.0s)
+
+- **Giá trị mặc định**: 2.0s
+- **Ý nghĩa**: Thời gian **xác nhận** rác sau khi phát hiện
+- **Lý do**: Tránh sai phát hiện khi rác lướt nhanh
+- **Ảnh hưởng**:
+  - Ngắn (0.5s): Nhanh nhưng dễ sai
+  - Trung bình (2.0s): Cân bằng ✅
+  - Dài (3-5s): Chắc chắn nhưng có thể mất mục tiêu
+- **Logic**:
+  ```
+  Detect rác → VERIFYING (chờ 2s) →
+  Nếu rác vẫn ở → ALIGNING
+  Nếu mất → quay lại SEARCH
+  ```
+
+---
+
+### **📍 NHÓM 3: CHUYỂN ĐỘNG & CẢM BIẾN (Movement - Sensor)**
+
+#### **Scan Spd** (10% - 100%)
+
+- **Giá trị mặc định**: 90%
+- **Ý nghĩa**: Tốc độ **xoay** khi tìm kiếm (PWM motor)
+- **Ảnh hưởng**:
+  - Thấp (30%): Xoay chậm, quét kỹ
+  - Cao (90%): Xoay nhanh, quét nhanh ✅
+- **Lưu ý**: Khác với "Speed" (Speed là chạy vào, Scan Spd là xoay tìm)
+
+#### **Search Dly** (0s - 3.0s) ⭐ **KEY PARAMETER**
+
+- **Giá trị mặc định**: 1.5s (vừa sửa)
+- **Ý nghĩa**: Thời gian **đứng yên** để AI scan trước khi xoay
+- **Quy trình**:
+  ```
+  Đứng yên → chờ Search Dly → AI scan → không tìm thấy → xoay → đứng yên → lặp lại
+  ```
+- **Ảnh hưởng**:
+  - Ngắn (0.3s): Xe xoay liên tục, scan kém ❌
+  - Trung bình (1.5s): Cân bằng ✅ (VỪA SỬA)
+  - Dài (2.5s+): Xe chờ lâu, nhưng scan kỹ
+
+#### **Align Tol** (10-100px)
+
+- **Giá trị mặc định**: 40px
+- **Ý nghĩa**: **Sai số cho phép** để coi là căn chỉnh đúng
+- **Ảnh hưởng**:
+  - Nhỏ (10px): Yêu cầu chính xác, có thể lâu
+  - Trung bình (40px): Cân bằng ✅
+  - Lớn (80px): Chấp nhận sai, nhanh nhưng có thể va
+- **Logic**:
+  ```
+  |target_x - center_x| < Align Tol → CHASING
+  |target_x - center_x| >= Align Tol → ALIGNING (xoay)
+  ```
+
+#### **Align Speed** (10-100)
+
+- **Giá trị mặc định**: 40
+- **Ý nghĩa**: Tốc độ **xoay để căn chỉnh** khi rác lệch
+- **Ảnh hưởng**:
+  - Thấp (20): Xoay chậm, chính xác
+  - Trung bình (40): Cân bằng ✅
+  - Cao (60+): Xoay nhanh, có thể vượt
+- **Khác với Scan Spd**: Scan Spd = xoay tìm, Align Speed = xoay căn chỉnh
+
+#### **Turn Sens** (0.1 - 5.0)
+
+- **Giá trị mặc định**: 0.2
+- **Ý nghĩa**: **Độ nhạy** quay theo sai lệch của rác
+- **Công thức**: `turn = error × Turn Sens`
+- **Ảnh hưởng**:
+  - Thấp (0.1): Quay chậm, đi lệch
+  - Trung bình (0.2): Cân bằng ✅
+  - Cao (0.5+): Quay nhiều, dao động
+- **Ví dụ**:
+  - Rác lệch 50px, Turn Sens = 0.2 → quay 10
+  - Rác lệch 50px, Turn Sens = 0.5 → quay 25 (nhanh hơn)
+
+#### **Stop Dist** (1-50cm)
+
+- **Giá trị mặc định**: 10cm
+- **Ý nghĩa**: Khoảng cách **dừng** (từ sonar FRONT)
+- **Ảnh hưởng**:
+  - Nhỏ (5cm): Xe chạy gần, rủi ro
+  - Trung bình (10cm): Cân bằng ✅
+  - Lớn (20cm+): Xe dừng xa, an toàn
+- **Logic**: Khi sonar Front < Stop Dist → REACHED (dừng)
+
+#### **Motor Balance** (0.8 - 1.2)
+
+- **Giá trị mặc định**: 1.0
+- **Ý nghĩa**: Cân bằng 2 motor trái/phải
+- **Ảnh hưởng**:
+  - < 1.0 (VD: 0.9): Motor trái yếu hơn → xe lệch trái ← điều chỉnh tăng
+  - = 1.0: Cân bằng ✅
+  - > 1.0 (VD: 1.1): Motor trái mạnh hơn → xe lệch phải ← điều chỉnh giảm
+- **Cách test**: Chạy thẳng, nếu lệch thì điều chỉnh slider
+
+#### **Lost Timeout** (0.1 - 3.0s)
+
+- **Giá trị mặc định**: 1.0s
+- **Ý nghĩa**: Thời gian **mất mục tiêu** cho phép trước khi bỏ cuộc
+- **Ảnh hưởng**:
+  - Ngắn (0.5s): Dễ bỏ cuộc nhanh
+  - Trung bình (1.0s): Cân bằng ✅
+  - Dài (2.0s): Chờ lâu, có thể giữ rác sau tường
+- **Logic**:
+  ```
+  Nếu không thấy rác > Lost Timeout → quay lại SEARCH
+  ```
+
+---
+
+## 📈 Workflow Chi Tiết
+
+### **Scan Mode = OFF (Đứng chờ)**
+
+```
+START → IDLE (đứng yên)
+        ↓
+        Phát hiện rác (confidence > AI Conf)?
+        ├─ YES → VERIFYING (chờ Verify thời gian)
+        │         ├─ Vẫn thấy → ALIGNING
+        │         └─ Mất → IDLE
+        │
+        │         ALIGNING (xoay căn chỉnh)
+        │         ├─ |sai_lệch| < Align Tol → CHASING
+        │         └─ |sai_lệch| >= Align Tol → xoay Align Speed
+        │
+        │         CHASING (chạy vào)
+        │         ├─ sonar < Stop Dist → REACHED (xong!)
+        │         └─ sonar >= Stop Dist → chạy với P-control
+        │
+        └─ NO → lặp lại (IDLE)
+```
+
+### **Scan Mode = ON (Xoay tìm)** ⭐
+
+```
+START → SEARCH_WAIT (đứng yên)
+        ├─ Thời gian: SEARCH_DELAY (1.5s) ← VỪA SỬA
+        ├─ Phát hiện? → YES → VERIFYING (như trên)
+        └─ Không? → SEARCH_STEP (xoay)
+                    │
+                    ├─ Thời gian: SCAN_TURN_DURATION (0.4s)
+                    ├─ Tốc độ: SCAN_SPEED (90%)
+                    └─ Xoay xong → quay lại SEARCH_WAIT ← LẶP LẠI
+```
+
+---
+
+## 🎯 Khuyến cáo cấu hình
+
+### **Phòng nhỏ (< 5m)**
+
+```
+Speed: 50
+Scan Mode: OFF (chỉ đứng chờ)
+Verify: 1.0s
+Align Tol: 30px
+Turn Sens: 0.2
+Stop Dist: 8cm
+Motor Balance: 1.0
+```
+
+### **Phòng vừa (5-10m)**
+
+```
+Speed: 65
+Scan Mode: ON
+Search Dly: 1.5s ✅ (vừa sửa)
+Step Turn: 0.4s
+Scan Spd: 90%
+Verify: 2.0s
+Align Tol: 40px
+Turn Sens: 0.2
+Stop Dist: 10cm
+Motor Balance: 1.0
+```
+
+### **Phòng lớn (10m+)**
+
+```
+Speed: 80
+Scan Mode: ON
+Search Dly: 2.0s (chờ lâu hơn để scan kỹ)
+Step Turn: 0.6s (xoay lâu hơn mỗi bước)
+Scan Spd: 100%
+Verify: 2.5s
+Align Tol: 50px
+Turn Sens: 0.25
+Stop Dist: 12cm
+Motor Balance: 1.0
+```
+
+---
+
+## 🔍 Debugging
+
+| Vấn đề                 | Nguyên nhân                        | Cách fix                   |
+| ---------------------- | ---------------------------------- | -------------------------- |
+| Xe xoay liên tục       | Search Dly quá ngắn                | ↑ Tăng Search Dly (2.0s+)  |
+| Xe bỏ lỡ rác           | Verify quá ngắn hoặc Scan Spd chậm | ↑ Tăng Verify, Scan Spd    |
+| Xe quay từng nhất      | Step Turn quá ngắn                 | ↑ Tăng Step Turn (0.5s+)   |
+| Xe quay quá đột ngột   | Align Speed quá cao                | ↓ Giảm Align Speed (20-30) |
+| Xe lệch phải/trái      | Motor không cân bằng               | Điều chỉnh Motor Balance   |
+| Xe không xoay đến được | Align Tol quá chặt                 | ↑ Tăng Align Tol (50px+)   |
+| Xe va vào rác          | Stop Dist quá nhỏ                  | ↑ Tăng Stop Dist (15cm+)   |
+
+---
+
+## ✅ Kiểm tra nhanh
+
+Sau khi điều chỉnh, test các điều sau:
+
+- [ ] Bật Scan Mode → xe đứng yên trước, không xoay liên tục
+- [ ] Hết ~1.5s → xe xoay 1 lần (kéo dài 0.4s)
+- [ ] Sau xoay → xe đứng yên lại 1.5s (lặp)
+- [ ] Đặt rác vào → xe phát hiện → verify → align → chase → stop
+- [ ] Chạy thẳng → không lệch phải/trái
 - **Giảm xuống (50-70%):** Quay chậm → Phát hiện tốt nhưng chậm
 - **Khuyến cáo:** 80-90%
 

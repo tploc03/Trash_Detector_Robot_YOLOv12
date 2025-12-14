@@ -187,6 +187,22 @@ class SettingsPanel(QWidget):
         l1.addWidget(self.slider_man_speed)
         l1.addWidget(lbl_speed)
         
+        l2 = QHBoxLayout()
+        lbl_motor_title = QLabel("Balance:")
+        lbl_motor_title.setMinimumWidth(70)
+        lbl_motor_title.setFont(QFont("Segoe UI", 10))
+        self.slider_man_motor = QSlider(Qt.Orientation.Horizontal)
+        self.slider_man_motor.setRange(80, 120)  # 0.8 - 1.2
+        self.slider_man_motor.setValue(100)  # 1.0 (neutral)
+        lbl_motor = QLabel("1.0")
+        lbl_motor.setMinimumWidth(40)
+        lbl_motor.setAlignment(Qt.AlignmentFlag.AlignRight)
+        lbl_motor.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
+        self.slider_man_motor.valueChanged.connect(lambda v: lbl_motor.setText(f"{v/100:.2f}"))
+        l2.addWidget(lbl_motor_title)
+        l2.addWidget(self.slider_man_motor)
+        l2.addWidget(lbl_motor)
+        
         btn = QPushButton("APPLY MANUAL SETTINGS")
         btn.setStyleSheet(BTN_STYLE)
         btn.setMinimumHeight(40)
@@ -194,6 +210,7 @@ class SettingsPanel(QWidget):
         btn.clicked.connect(self.apply_manual)
 
         layout.addLayout(l1)
+        layout.addLayout(l2)
         layout.addStretch()
         layout.addWidget(btn)
         widget.setLayout(layout)
@@ -237,7 +254,7 @@ class SettingsPanel(QWidget):
         self.chk_spin.setChecked(False)
         
         # --- NHÓM 2: CHIẾN THUẬT ---
-        grp_strat = QGroupBox("Step & Scan Tuning")
+        grp_strat = QGroupBox("Step - Scan")
         grp_strat.setFont(QFont("Segoe UI", 9, QFont.Weight.Bold))
         grp_strat.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         strat_layout = QVBoxLayout()
@@ -245,7 +262,7 @@ class SettingsPanel(QWidget):
         
         # Scan Duration
         l_scan = QHBoxLayout()
-        lbl_scan = QLabel("Step Turn:")
+        lbl_scan = QLabel("Turn Time:")
         lbl_scan.setMinimumWidth(70)
         self.slider_scan_dur = QSlider(Qt.Orientation.Horizontal)
         self.slider_scan_dur.setRange(1, 50)
@@ -271,7 +288,7 @@ class SettingsPanel(QWidget):
         
         # Confirm Time
         l_conf = QHBoxLayout()
-        lbl_conf_time = QLabel("Verify:")
+        lbl_conf_time = QLabel("Verify Time:")
         lbl_conf_time.setMinimumWidth(70)
         self.slider_confirm = QSlider(Qt.Orientation.Horizontal)
         self.slider_confirm.setRange(1, 50)
@@ -288,7 +305,7 @@ class SettingsPanel(QWidget):
         grp_strat.setLayout(strat_layout)
         
         # --- NHÓM 3: CHUYỂN ĐỘNG ---
-        grp_move = QGroupBox("Movement & Sensor Tuning")
+        grp_move = QGroupBox("Movement - Sensor")
         grp_move.setFont(QFont("Segoe UI", 9, QFont.Weight.Bold))
         grp_move.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         move_layout = QVBoxLayout()
@@ -296,7 +313,7 @@ class SettingsPanel(QWidget):
         
         # Scan Speed
         l_scan_speed = QHBoxLayout()
-        lbl_ss = QLabel("Scan Spd:")
+        lbl_ss = QLabel("Scan Speed:")
         lbl_ss.setMinimumWidth(70)
         self.slider_scan_speed = QSlider(Qt.Orientation.Horizontal)
         self.slider_scan_speed.setRange(10, 100)
@@ -309,10 +326,10 @@ class SettingsPanel(QWidget):
         
         # Search Delay
         l_search_delay = QHBoxLayout()
-        lbl_sd = QLabel("Search Dly:")
+        lbl_sd = QLabel("Search Delay:")
         lbl_sd.setMinimumWidth(70)
         self.slider_search_delay = QSlider(Qt.Orientation.Horizontal)
-        self.slider_search_delay.setRange(0, 30)
+        self.slider_search_delay.setRange(0, 100)
         self.slider_search_delay.setValue(5)
         lbl_search_delay = QLabel("0.5s")
         lbl_search_delay.setMinimumWidth(35)
@@ -322,7 +339,7 @@ class SettingsPanel(QWidget):
         
         # Align Tolerance
         l_align = QHBoxLayout()
-        lbl_at = QLabel("Align Tol:")
+        lbl_at = QLabel("Align Tolerance:")
         lbl_at.setMinimumWidth(70)
         self.slider_align = QSlider(Qt.Orientation.Horizontal)
         self.slider_align.setRange(10, 100)
@@ -334,19 +351,21 @@ class SettingsPanel(QWidget):
         l_align.addWidget(lbl_at); l_align.addWidget(self.slider_align); l_align.addWidget(lbl_align)
         
         l_align_speed = QHBoxLayout()
-        self.slider_align_speed = QSlider(Qt.Orientation.Horizontal)
-        self.slider_align_speed.setRange(20, 100)
-        self.slider_align_speed.setValue(40)  # Default 40
-        lbl_align_speed = QLabel("40")
-        self.slider_align_speed.valueChanged.connect(lambda v: lbl_align_speed.setText(f"{v}"))
         l_align_speed.addWidget(QLabel("Align Speed:"))
+        self.slider_align_speed = QSlider(Qt.Orientation.Horizontal)
+        self.slider_align_speed.setRange(10, 100)
+        self.slider_align_speed.setValue(40)
+        lbl_align_speed = QLabel("40")
+        lbl_align_speed.setMinimumWidth(35)
+        lbl_align_speed.setFont(QFont("Segoe UI", 9, QFont.Weight.Bold))
+        self.slider_align_speed.valueChanged.connect(lambda v: lbl_align_speed.setText(f"{v}"))
         l_align_speed.addWidget(self.slider_align_speed)
         l_align_speed.addWidget(lbl_align_speed)
         move_layout.addLayout(l_align_speed)
 
-        # Turn Sensitivity
+        # Align Sensitivity
         l_turn_sens = QHBoxLayout()
-        lbl_ts = QLabel("Turn Sens:")
+        lbl_ts = QLabel("Align Sens:")
         lbl_ts.setMinimumWidth(70)
         self.slider_turn_sens = QSlider(Qt.Orientation.Horizontal)
         self.slider_turn_sens.setRange(1, 50)
@@ -359,15 +378,15 @@ class SettingsPanel(QWidget):
         
         # Stop Distance
         l_stop_dist = QHBoxLayout()
-        lbl_stpdist = QLabel("Stop Dist:")
+        lbl_stpdist = QLabel("Stop Distance:")
         lbl_stpdist.setMinimumWidth(70)
         self.slider_stop_dist = QSlider(Qt.Orientation.Horizontal)
         self.slider_stop_dist.setRange(1, 50)
         self.slider_stop_dist.setValue(10)
-        lbl_stop_dist = QLabel("10cm")
+        lbl_stop_dist = QLabel("10")
         lbl_stop_dist.setMinimumWidth(35)
         lbl_stop_dist.setFont(QFont("Segoe UI", 9, QFont.Weight.Bold))
-        self.slider_stop_dist.valueChanged.connect(lambda v: lbl_stop_dist.setText(f"{v}cm"))
+        self.slider_stop_dist.valueChanged.connect(lambda v: lbl_stop_dist.setText(f"{v}"))
         l_stop_dist.addWidget(lbl_stpdist); l_stop_dist.addWidget(self.slider_stop_dist); l_stop_dist.addWidget(lbl_stop_dist)
 
 
@@ -376,11 +395,26 @@ class SettingsPanel(QWidget):
         self.slider_timeout.setRange(1, 30)
         self.slider_timeout.setValue(10)
         lbl_timeout = QLabel("1.0s")
+        lbl_timeout.setMinimumWidth(35)
+        lbl_timeout.setFont(QFont("Segoe UI", 9, QFont.Weight.Bold))
         self.slider_timeout.valueChanged.connect(lambda v: lbl_timeout.setText(f"{v/10:.1f}s"))
         l_timeout.addWidget(QLabel("Lost Timeout:"))
         l_timeout.addWidget(self.slider_timeout)
         l_timeout.addWidget(lbl_timeout)
-        move_layout.addLayout(l_timeout) 
+        move_layout.addLayout(l_timeout)
+        
+        l_motor_balance = QHBoxLayout()
+        lbl_motor = QLabel("Balance:")
+        lbl_motor.setMinimumWidth(70)
+        self.slider_motor_left = QSlider(Qt.Orientation.Horizontal)
+        self.slider_motor_left.setRange(80, 120)  # 0.8 - 1.2
+        self.slider_motor_left.setValue(100)  # 1.0 (neutral)
+        lbl_motor_val = QLabel("1.0")
+        lbl_motor_val.setMinimumWidth(35)
+        lbl_motor_val.setFont(QFont("Segoe UI", 9, QFont.Weight.Bold))
+        self.slider_motor_left.valueChanged.connect(lambda v: lbl_motor_val.setText(f"{v/100:.2f}"))
+        l_motor_balance.addWidget(lbl_motor); l_motor_balance.addWidget(self.slider_motor_left); l_motor_balance.addWidget(lbl_motor_val)
+        move_layout.addLayout(l_motor_balance)
 
         move_layout.addLayout(l_scan_speed)
         move_layout.addLayout(l_search_delay)
@@ -407,7 +441,8 @@ class SettingsPanel(QWidget):
 
     def apply_manual(self):
         s = self.slider_man_speed.value()
-        self.app.apply_manual_config(s)
+        motor_balance = self.slider_man_motor.value() / 100.0
+        self.app.apply_manual_config(s, motor_balance)
 
     def apply_auto(self):
         speed = self.slider_auto_speed.value()
@@ -425,7 +460,8 @@ class SettingsPanel(QWidget):
         stop_dist = self.slider_stop_dist.value()
         align_speed = self.slider_align_speed.value()
         timeout = self.slider_timeout.value() / 10.0
+        motor_left_boost = self.slider_motor_left.value() / 100.0  # ✅ NEW: Motor balance
         
         self.app.apply_auto_config(speed, conf, spin_enabled, scan_dur, wait_dur, verify_time, 
                                    scan_speed, search_delay, align_tol, turn_sens, stop_dist,
-                                   align_speed, timeout)
+                                   align_speed, timeout, motor_left_boost)

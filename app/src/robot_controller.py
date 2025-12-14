@@ -18,11 +18,11 @@ class RobotController:
         self.center_x = screen_width // 2
         
         #Scan
-        self.SCAN_TURN_DURATION = 0.4  
-        self.SCAN_WAIT_DURATION = 1.0  
-        self.SCAN_SPEED = 90
+        self.SCAN_TURN_DURATION = 0.4
+        self.SCAN_WAIT_DURATION = 1.0
+        self.SCAN_SPEED = 90 
         self.ALIGN_SPEED = 40
-        self.SEARCH_DELAY = 0.5
+        self.SEARCH_DELAY = 1.5
         self.LOST_TARGET_TIMEOUT = 1.0
         #Xác thực
         self.CONFIRM_TIME = 2.0        
@@ -32,6 +32,8 @@ class RobotController:
         self.TURN_SENSITIVITY = 0.2   
         self.STOP_DISTANCE = 10        
         
+        self.MOTOR_LEFT_BOOST = 1.0
+        self.MOTOR_RIGHT_BOOST = 1.0
 
         self.target_x = None
         self.current_label = ""
@@ -124,21 +126,26 @@ class RobotController:
             if duration >= self.CONFIRM_TIME:
                 self.state = RobotState.ALIGNING
                 return 0, 0, "CONFIRMED!"
-            return 0, 0, f"Verifying ({duration:.1f}s)"
+            # ✅ FIX: Keep moving during verification (avoid motor "e...e" issue)
+            return int(self.base_speed * 0.5), int(self.base_speed * 0.5), f"Verifying ({duration:.1f}s)"
 
         elif self.state == RobotState.ALIGNING:
             error = self.target_x - self.center_x
             
+            # ✅ FIX: Kiểm tra và chuyển sang CHASING trước
             if abs(error) < self.ALIGN_TOLERANCE:
                 self.state = RobotState.CHASING
                 L = self.base_speed
                 R = self.base_speed
                 return int(L), int(R), "LOCKED"
             
+            # ❌ Nếu chưa căn chỉnh -> xoay
             turn_speed = self.ALIGN_SPEED 
-            if error > 0: 
+            if error > 0:
+                # Rác ở bên phải -> xoay phải (R-, L+)
                 return turn_speed, -turn_speed, "Aligning Right"
-            else: 
+            else:
+                # Rác ở bên trái -> xoay trái (L-, R+)
                 return -turn_speed, turn_speed, "Aligning Left"
 
         elif self.state == RobotState.CHASING:
@@ -149,7 +156,15 @@ class RobotController:
             L = self.base_speed + turn
             R = self.base_speed - turn
             
-            return int(L), int(R), f"Dist: {self.dist_front}cm"
+            # ✅ Apply motor balance to correct drift
+            L = int(L * self.MOTOR_LEFT_BOOST)
+            R = int(R * self.MOTOR_RIGHT_BOOST)
+            
+            # Clamp to valid PWM range (0-255)
+            L = max(0, min(255, L))
+            R = max(0, min(255, R))
+            
+            return L, R, f"Dist: {self.dist_front}cm"
 
         return 0, 0, "IDLE"
 
