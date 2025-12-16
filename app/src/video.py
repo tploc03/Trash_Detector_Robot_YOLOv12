@@ -46,6 +46,11 @@ class VideoThread(QThread):
         self.process_every_n_frames = 2
         self.ai_frame_counter = 0
         self.detection_count = 0
+        
+        # ✅ NEW: Reconnect backoff
+        self.reconnect_delay = 0.5
+        self.reconnect_attempt = 0
+        self.last_reconnect_time = 0
 
     def update_source(self, url):
         if url != self.stream_url:
@@ -78,6 +83,12 @@ class VideoThread(QThread):
         print(f"Video Thread Starting with: {self.stream_url}")
         cap = cv2.VideoCapture(self.stream_url)
         cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+        # ✅ NEW: Set timeout on stream connection (3 seconds)
+        cap.set(cv2.CAP_PROP_OPEN_TIMEOUT_MSEC, 3000)
+        cap.set(cv2.CAP_PROP_READ_TIMEOUT_MSEC, 3000)
+        
+        self.last_reconnect_time = time.time()
+        no_frame_count = 0  # Track consecutive frames without data
         
         while self._run_flag:
             if self.reconnect_requested:
@@ -87,15 +98,46 @@ class VideoThread(QThread):
                 time.sleep(0.5)
                 cap = cv2.VideoCapture(self.stream_url)
                 cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+                cap.set(cv2.CAP_PROP_OPEN_TIMEOUT_MSEC, 3000)
+                cap.set(cv2.CAP_PROP_READ_TIMEOUT_MSEC, 3000)
+                # ✅ NEW: Reset frame counters on reconnect
+                self.ai_frame_counter = 0
+                self.detection_count = 0
+                no_frame_count = 0
                 self.reconnect_requested = False
 
             ret, frame = cap.read()
             
             if not ret:
-                if int(time.time()) % 2 == 0:
-                    print("No Frame. Check IP or Wifi.")
-                self.msleep(500)
+                no_frame_count += 1
+                # ✅ NEW: Exponential backoff with max 5s delay
+                if no_frame_count > 10:  # After 10 failed reads, start backing off
+                    if time.time() - self.last_reconnect_time > self.reconnect_delay:
+                        print(f"No Frame ({no_frame_count}x). Reconnecting with {self.reconnect_delay}s delay...")
+                        if cap.isOpened():
+                            cap.release()
+                        cap = cv2.VideoCapture(self.stream_url)
+                        cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+                        cap.set(cv2.CAP_PROP_OPEN_TIMEOUT_MSEC, 3000)
+                        cap.set(cv2.CAP_PROP_READ_TIMEOUT_MSEC, 3000)
+                        # Reset counters
+                        self.ai_frame_counter = 0
+                        self.detection_count = 0
+                        no_frame_count = 0
+                        # Exponential backoff: 0.5s → 1s → 2s → 5s (max)
+                        self.reconnect_delay = min(5.0, self.reconnect_delay * 2)
+                        self.last_reconnect_time = time.time()
+                    else:
+                        self.msleep(200)
+                else:
+                    self.msleep(500)
                 continue
+            else:
+                # ✅ NEW: Reset backoff on successful frame read
+                if no_frame_count > 0:
+                    print(f"Connection restored after {no_frame_count} failures")
+                    self.reconnect_delay = 0.5  # Reset to initial delay
+                    no_frame_count = 0
             
             # Resize để tăng tốc độ xử lý
             h, w = frame.shape[:2]

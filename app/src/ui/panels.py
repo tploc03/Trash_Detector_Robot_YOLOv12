@@ -248,9 +248,27 @@ class SettingsPanel(QWidget):
         self.slider_auto_conf.valueChanged.connect(lambda v: lbl_conf.setText(f"{v}%"))
         l2.addWidget(lbl_conf_title); l2.addWidget(self.slider_auto_conf); l2.addWidget(lbl_conf)
 
+        l_frame = QHBoxLayout()
+        lbl_frame_title = QLabel("AI Frame:")
+        lbl_frame_title.setMinimumWidth(70)
+        self.slider_ai_frame = QSlider(Qt.Orientation.Horizontal)
+        self.slider_ai_frame.setRange(1, 10)
+        self.slider_ai_frame.setValue(1)
+        lbl_frame = QLabel("1")
+        lbl_frame.setMinimumWidth(35)
+        lbl_frame.setFont(QFont("Segoe UI", 9, QFont.Weight.Bold))
+        self.slider_ai_frame.valueChanged.connect(lambda v: lbl_frame.setText(f"{v}"))
+        l_frame.addWidget(lbl_frame_title); l_frame.addWidget(self.slider_ai_frame); l_frame.addWidget(lbl_frame)
+
         self.chk_spin = QCheckBox("Enable Scan Mode")
         self.chk_spin.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
         self.chk_spin.setStyleSheet(CHECKBOX_STYLE)
+        self.chk_spin.setChecked(False)
+        
+        layout.addLayout(l1)
+        layout.addLayout(l2)
+        layout.addLayout(l_frame)
+        layout.addWidget(self.chk_spin)
         self.chk_spin.setChecked(False)
         
         # --- NHÓM 2: CHIẾN THUẬT ---
@@ -292,8 +310,8 @@ class SettingsPanel(QWidget):
         lbl_conf_time.setMinimumWidth(70)
         self.slider_confirm = QSlider(Qt.Orientation.Horizontal)
         self.slider_confirm.setRange(1, 50)
-        self.slider_confirm.setValue(20)
-        lbl_conf_val = QLabel("2.0s")
+        self.slider_confirm.setValue(10)
+        lbl_conf_val = QLabel("1.0s")
         lbl_conf_val.setMinimumWidth(35)
         lbl_conf_val.setFont(QFont("Segoe UI", 9, QFont.Weight.Bold))
         self.slider_confirm.valueChanged.connect(lambda v: lbl_conf_val.setText(f"{v/10:.1f}s"))
@@ -329,9 +347,9 @@ class SettingsPanel(QWidget):
         lbl_sd = QLabel("Search Delay:")
         lbl_sd.setMinimumWidth(70)
         self.slider_search_delay = QSlider(Qt.Orientation.Horizontal)
-        self.slider_search_delay.setRange(0, 100)
-        self.slider_search_delay.setValue(5)
-        lbl_search_delay = QLabel("0.5s")
+        self.slider_search_delay.setRange(0, 500)
+        self.slider_search_delay.setValue(100)
+        lbl_search_delay = QLabel("10s")
         lbl_search_delay.setMinimumWidth(35)
         lbl_search_delay.setFont(QFont("Segoe UI", 9, QFont.Weight.Bold))
         self.slider_search_delay.valueChanged.connect(lambda v: lbl_search_delay.setText(f"{v/10:.1f}s"))
@@ -431,6 +449,7 @@ class SettingsPanel(QWidget):
 
         layout.addLayout(l1)
         layout.addLayout(l2)
+        layout.addLayout(l_frame)
         layout.addWidget(self.chk_spin)
         layout.addWidget(grp_strat)
         layout.addWidget(grp_move)
@@ -461,7 +480,8 @@ class SettingsPanel(QWidget):
         align_speed = self.slider_align_speed.value()
         timeout = self.slider_timeout.value() / 10.0
         motor_left_boost = self.slider_motor_left.value() / 100.0  # ✅ NEW: Motor balance
+        ai_frame_interval = self.slider_ai_frame.value()  # ✅ NEW: AI Frame Interval
         
         self.app.apply_auto_config(speed, conf, spin_enabled, scan_dur, wait_dur, verify_time, 
                                    scan_speed, search_delay, align_tol, turn_sens, stop_dist,
-                                   align_speed, timeout, motor_left_boost)
+                                   align_speed, timeout, motor_left_boost, ai_frame_interval)

@@ -59,7 +59,7 @@ def extract_frames(video_dir, output_dir, frame_interval=3):
 
 # --- CẤU HÌNH ĐƯỜNG DẪN TẠI ĐÂY ---
 input_folder = "ai/data/cam1/plastic"   # Tên thư mục chứa video quay được
-output_folder = "ai/data/cam1/picture/plastic"   # Tên thư mục muốn lưu ảnh
+output_folder = "ai/data/cam1/pic1/plastic"   # Tên thư mục muốn lưu ảnh
 frames_step = 4
 
 # Chạy hàm

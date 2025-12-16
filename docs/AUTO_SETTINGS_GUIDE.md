@@ -262,7 +262,7 @@ Motor Balance: 1.0
 ```
 Speed: 65
 Scan Mode: ON
-Search Dly: 1.5s ✅ (vừa sửa)
+Search Dly: 1.5s
 Step Turn: 0.4s
 Scan Spd: 90%
 Verify: 2.0s

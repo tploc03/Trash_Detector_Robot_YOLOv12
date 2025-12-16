@@ -35,11 +35,13 @@ sys.excepthook = exception_hook
 
 class DetectionCompleteDialog(QDialog):
     """Dialog thông báo hoàn thành"""
-    def __init__(self, trash_name, parent=None):
+    def __init__(self, trash_name, parent=None, scan_mode_on=False):
         super().__init__(parent)
         self.setWindowTitle("Done")
         self.setModal(True)
-        self.setFixedSize(400, 250)
+        self.setFixedSize(400, 300)
+        self.scan_mode_on = scan_mode_on
+        self.result = "manual"  # Default: return manual
         self.setStyleSheet("""
             QDialog { background-color: #FFFFFF; border: 2px solid #0078D4; border-radius: 10px; }
             QLabel { color: #333; background: transparent; }
@@ -67,9 +69,40 @@ class DetectionCompleteDialog(QDialog):
         lbl_time.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(lbl_time)
         
-        btn_ok = QPushButton("Return to Manual")
-        btn_ok.clicked.connect(self.accept)
-        layout.addWidget(btn_ok)
+        layout.addSpacing(20)
+        
+        # ✅ NEW: 2 options when Scan Mode ON
+        if self.scan_mode_on:
+            btn_layout = QHBoxLayout()
+            
+            btn_continue = QPushButton("Continue Scanning")
+            btn_continue.setStyleSheet("""
+                QPushButton {
+                    background-color: #107C10; color: white; border-radius: 6px;
+                    padding: 10px 20px; font-weight: bold; font-size: 12px;
+                }
+                QPushButton:hover { background-color: #0B6A0B; }
+            """)
+            btn_continue.clicked.connect(self.continue_scanning)
+            
+            btn_manual = QPushButton("Return to Manual")
+            btn_manual.clicked.connect(self.return_manual)
+            
+            btn_layout.addWidget(btn_continue)
+            btn_layout.addWidget(btn_manual)
+            layout.addLayout(btn_layout)
+        else:
+            btn_ok = QPushButton("Return to Manual")
+            btn_ok.clicked.connect(self.accept)
+            layout.addWidget(btn_ok)
+    
+    def continue_scanning(self):
+        self.result = "continue"
+        self.accept()
+    
+    def return_manual(self):
+        self.result = "manual"
+        self.accept()
 
 class RobotApp(QMainWindow):
     def __init__(self):
@@ -290,7 +323,7 @@ class RobotApp(QMainWindow):
         self.show_loading("MANUAL CONFIG SET", 800)
 
     def apply_auto_config(self, speed, conf, spin_enabled, scan_dur, wait_dur, verify_time,
-                      scan_speed, search_delay, align_tol, turn_sens, stop_dist, align_speed, timeout, motor_left_boost=1.0):
+                      scan_speed, search_delay, align_tol, turn_sens, stop_dist, align_speed, timeout, motor_left_boost=1.0, ai_frame_interval=1):
         self.auto_speed = speed
         self.auto_conf = conf
         self.robot.base_speed = speed
@@ -308,6 +341,9 @@ class RobotApp(QMainWindow):
         # ✅ NEW: Motor balance
         self.robot.MOTOR_LEFT_BOOST = motor_left_boost
         self.robot.MOTOR_RIGHT_BOOST = 1.0 / motor_left_boost  # Inverse để giữ power
+        # ✅ NEW: AI Frame Interval
+        if self.video_thread:
+            self.video_thread.process_every_n_frames = ai_frame_interval
         
         if self.is_auto:
             self.video_thread.update_conf(conf)
@@ -386,7 +422,7 @@ class RobotApp(QMainWindow):
         old_state = self.robot.state
         L, R, info = self.robot.compute_control()
         
-        if old_state == RobotState.VERIFYING and self.robot.state == RobotState.ALIGNING:
+        if old_state != RobotState.ALIGNING and self.robot.state == RobotState.ALIGNING:
             label = self.robot.current_label
             self.sound.play_trash_detect(label)
             self.panel_auto.add_trash_item(label, datetime.datetime.now().strftime("%H:%M:%S"))
@@ -410,21 +446,29 @@ class RobotApp(QMainWindow):
             self.robot.update_detection(detections)
 
     def handle_trash_reached(self):
-        self.auto_timer.stop()
         self.net_thread.send_command({"cmd": "STOP", "L": 0, "R": 0})
-        self.sound.play_done()
+        self.sound.play_done()  # ✅ ALWAYS play done sound
         
         trash_name = self.robot.current_label
         trash_name = self.robot.current_label or "UNKNOWN"
         if not trash_name:
             trash_name = "TRASH"
-    
-        QTimer.singleShot(200, lambda: self.show_completion_dialog(trash_name))
+        
+        # ✅ FIX: Always show dialog (with option to continue if Scan Mode ON)
+        self.auto_timer.stop()
+        QTimer.singleShot(200, lambda: self.show_completion_dialog(trash_name, self.robot.search_enabled))
 
-    def show_completion_dialog(self, trash_name):
-        dialog = DetectionCompleteDialog(trash_name, self)
+    def show_completion_dialog(self, trash_name, scan_mode_on=False):
+        dialog = DetectionCompleteDialog(trash_name, self, scan_mode_on)
         result = dialog.exec()
-        self.switch_to_manual_after_detection()
+        
+        if dialog.result == "continue":
+            # Scan Mode ON: Continue searching for next trash
+            self.robot.reset_after_reach()
+            self.auto_timer.start(50)
+        else:
+            # Return to manual mode
+            self.switch_to_manual_after_detection()
 
     def switch_to_manual_after_detection(self):
         self.btn_mode.blockSignals(True)

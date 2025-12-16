@@ -2,10 +2,10 @@ import os
 import shutil
 import random
 
-LABEL_DIR = "ai/data/cam1/label"
+LABEL_DIR = "ai/data/cam1/label1"
 
 # Thư mục ảnh
-IMAGE_DIR = "ai/data/cam1/picture"
+IMAGE_DIR = "ai/data/cam1/pic1"
 
 OUTPUT_DIR = "ai/data/final_yolo_trash_dataset111111111"
 

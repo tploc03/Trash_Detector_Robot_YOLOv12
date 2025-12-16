@@ -4,12 +4,15 @@ train: images/train
 val: images/val
 test: images/test
 
-nc: 6
+nc: 9
 
 names:
   0: battery
-  1: glass
-  2: metal
-  3: organic
-  4: paper_cardboard
-  5: plastic
+  1: cardboard
+  2: glass
+  3: metal
+  4: organic
+  5: paper
+  6: plastic
+  7: textile
+  8: trash

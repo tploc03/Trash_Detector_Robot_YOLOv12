@@ -22,10 +22,10 @@ class RobotController:
         self.SCAN_WAIT_DURATION = 1.0
         self.SCAN_SPEED = 90 
         self.ALIGN_SPEED = 40
-        self.SEARCH_DELAY = 1.5
+        self.SEARCH_DELAY = 10
         self.LOST_TARGET_TIMEOUT = 1.0
         #Xác thực
-        self.CONFIRM_TIME = 2.0        
+        self.CONFIRM_TIME = 1.0        
         
         #Di chuyển
         self.ALIGN_TOLERANCE = 40      
@@ -65,11 +65,19 @@ class RobotController:
         self.current_label = best['label']
         self.last_seen_time = time.time()
         
+        # ✅ FIX: Keep detection even if outside tolerance (not in critical state)
+        # Only skip in CRITICAL states where we need centered target
+        skip_out_of_tolerance = self.state in [RobotState.ALIGNING, RobotState.CHASING]
+        
         if abs(best['center_x'] - self.center_x) > self.ALIGN_TOLERANCE:
-            print(f"Skip {self.current_label} outside tolerance (x={best['center_x']})")
-            return
+            if skip_out_of_tolerance:
+                print(f"Skip {self.current_label} - too far left/right (x={best['center_x']})")
+                return
+            elif self.state not in [RobotState.VERIFYING]:
+                # In SEARCH mode, accept even if off-center to trigger verification
+                pass
     
-        if self.state in [RobotState.SEARCH_STEP, RobotState.SEARCH_WAIT, RobotState.IDLE]:
+        if self.state in [RobotState.SEARCH_STEP, RobotState.SEARCH_WAIT, RobotState.IDLE, RobotState.REACHED]:
             print(f"Spotted {self.current_label} ({best['conf']:.2f}) at x={best['center_x']} -> Verifying")
             self.state = RobotState.VERIFYING
             self.first_seen_time = time.time()
@@ -103,6 +111,10 @@ class RobotController:
 
         # --- STATE MACHINE ---
 
+        elif self.state == RobotState.IDLE:
+            # ✅ FIX: Scan Mode OFF - đứng yên chờ phát hiện
+            return 0, 0, "IDLE - Waiting for detection"
+
         elif self.state == RobotState.SEARCH_WAIT:
             if now - self.state_timer > self.SEARCH_DELAY:
                 self.state = RobotState.SEARCH_STEP
@@ -122,6 +134,15 @@ class RobotController:
             return -self.SCAN_SPEED, self.SCAN_SPEED, "Step Turn"
 
         elif self.state == RobotState.VERIFYING:
+            # ✅ FIX: Check if target lost during verification
+            if now - self.last_seen_time > self.LOST_TARGET_TIMEOUT:
+                if self.search_enabled:
+                    self.state = RobotState.SEARCH_WAIT
+                    self.state_timer = now
+                else:
+                    self.state = RobotState.IDLE
+                return 0, 0, "Lost during verification"
+            
             duration = now - self.first_seen_time
             if duration >= self.CONFIRM_TIME:
                 self.state = RobotState.ALIGNING
@@ -130,6 +151,15 @@ class RobotController:
             return int(self.base_speed * 0.5), int(self.base_speed * 0.5), f"Verifying ({duration:.1f}s)"
 
         elif self.state == RobotState.ALIGNING:
+            # ✅ FIX: Also check target lost during alignment
+            if now - self.last_seen_time > self.LOST_TARGET_TIMEOUT:
+                if self.search_enabled:
+                    self.state = RobotState.SEARCH_WAIT
+                    self.state_timer = now
+                else:
+                    self.state = RobotState.IDLE
+                return 0, 0, "Lost target during alignment"
+            
             error = self.target_x - self.center_x
             
             # ✅ FIX: Kiểm tra và chuyển sang CHASING trước
@@ -149,6 +179,15 @@ class RobotController:
                 return -turn_speed, turn_speed, "Aligning Left"
 
         elif self.state == RobotState.CHASING:
+            # ✅ FIX: Also check target lost during chasing
+            if now - self.last_seen_time > self.LOST_TARGET_TIMEOUT:
+                if self.search_enabled:
+                    self.state = RobotState.SEARCH_WAIT
+                    self.state_timer = now
+                else:
+                    self.state = RobotState.IDLE
+                return 0, 0, "Lost target while chasing"
+            
             error = self.target_x - self.center_x
             turn = int(error * self.TURN_SENSITIVITY)
             turn = max(-40, min(40, turn))
@@ -169,9 +208,15 @@ class RobotController:
         return 0, 0, "IDLE"
 
     def reset_after_reach(self):
-        self.state = RobotState.SEARCH_WAIT 
+        # ✅ FIX: Return to SEARCH_WAIT if Scan ON, or IDLE if Scan OFF
+        if self.search_enabled:
+            self.state = RobotState.SEARCH_WAIT
+        else:
+            self.state = RobotState.IDLE
         self.state_timer = time.time()
         self.target_x = None
+        # ✅ FIX: Reset sonar distance to avoid immediate REACHED again
+        self.dist_front = 999
 
     def emergency_stop(self):
         self.state = RobotState.IDLE
