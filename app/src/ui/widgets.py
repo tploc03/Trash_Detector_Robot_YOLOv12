@@ -4,7 +4,6 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont, QColor, QPainter
 
 class VisualKey(QPushButton):
-    """Modern Visual Key Button - W, A, S, D Control"""
     def __init__(self, text, key_code):
         super().__init__(text)
         self.key_code = key_code
@@ -57,7 +56,6 @@ class VisualKey(QPushButton):
             """)
 
 class SensorBox(QFrame):
-    """Modern Sensor Display with Progress Bar"""
     def __init__(self, title):
         super().__init__()
         self.current_value = 0
@@ -192,13 +190,13 @@ class LoadingOverlay(QWidget):
         self.hide()
 
     def show_msg(self, msg, sub=""):
-        """Hiển thị overlay với message"""
+        """Overlay with message"""
         self.lbl_text.setText(msg)
         if sub:
             self.lbl_sub.setText(sub)
         self.resize(self.parent().size())
         self.show()
-        self.raise_()  # Đưa lên trên cùng
+        self.raise_()
     
     def paintEvent(self, event):
         """Vẽ nền mờ"""

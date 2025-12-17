@@ -8,7 +8,6 @@ from PyQt6.QtGui import QFont
 from ui.widgets import VisualKey
 from styles import BTN_STYLE, INPUT_STYLE, PRIMARY_COLOR, TEXT_SECONDARY, BG_TERTIARY, TEXT_PRIMARY, CHECKBOX_STYLE
 
-# --- 1. MANUAL PANEL ---
 class ManualPanel(QWidget):
     def __init__(self, parent_app):
         super().__init__()
@@ -42,7 +41,6 @@ class ManualPanel(QWidget):
         main_layout.addWidget(container, alignment=Qt.AlignmentFlag.AlignCenter)
         main_layout.addStretch()
 
-# --- 2. AUTO PANEL ---
 class AutoPanel(QWidget):
     def __init__(self):
         super().__init__()
@@ -69,7 +67,6 @@ class AutoPanel(QWidget):
         self.list_detect.addItem(item)
         self.list_detect.scrollToBottom()
 
-# --- 3. SETTINGS PANEL ---
 class SettingsPanel(QWidget):
     def __init__(self, parent_app):
         super().__init__()
@@ -192,8 +189,8 @@ class SettingsPanel(QWidget):
         lbl_motor_title.setMinimumWidth(70)
         lbl_motor_title.setFont(QFont("Segoe UI", 10))
         self.slider_man_motor = QSlider(Qt.Orientation.Horizontal)
-        self.slider_man_motor.setRange(80, 120)  # 0.8 - 1.2
-        self.slider_man_motor.setValue(100)  # 1.0 (neutral)
+        self.slider_man_motor.setRange(80, 120)
+        self.slider_man_motor.setValue(100)
         lbl_motor = QLabel("1.0")
         lbl_motor.setMinimumWidth(40)
         lbl_motor.setAlignment(Qt.AlignmentFlag.AlignRight)
@@ -223,7 +220,6 @@ class SettingsPanel(QWidget):
         layout.setSpacing(12)
         layout.setContentsMargins(15, 15, 15, 15)
         
-        # --- NHÓM 1: CƠ BẢN ---
         l1 = QHBoxLayout()
         lbl_speed_title = QLabel("Speed:")
         lbl_speed_title.setMinimumWidth(70)
@@ -271,7 +267,6 @@ class SettingsPanel(QWidget):
         layout.addWidget(self.chk_spin)
         self.chk_spin.setChecked(False)
         
-        # --- NHÓM 2: CHIẾN THUẬT ---
         grp_strat = QGroupBox("Step - Scan")
         grp_strat.setFont(QFont("Segoe UI", 9, QFont.Weight.Bold))
         grp_strat.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
@@ -322,7 +317,6 @@ class SettingsPanel(QWidget):
         strat_layout.addLayout(l_conf)
         grp_strat.setLayout(strat_layout)
         
-        # --- NHÓM 3: CHUYỂN ĐỘNG ---
         grp_move = QGroupBox("Movement - Sensor")
         grp_move.setFont(QFont("Segoe UI", 9, QFont.Weight.Bold))
         grp_move.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
@@ -334,7 +328,7 @@ class SettingsPanel(QWidget):
         lbl_ss = QLabel("Scan Speed:")
         lbl_ss.setMinimumWidth(70)
         self.slider_scan_speed = QSlider(Qt.Orientation.Horizontal)
-        self.slider_scan_speed.setRange(10, 100)
+        self.slider_scan_speed.setRange(0, 255)
         self.slider_scan_speed.setValue(90)
         lbl_scan_speed = QLabel("90%")
         lbl_scan_speed.setMinimumWidth(35)
@@ -479,8 +473,8 @@ class SettingsPanel(QWidget):
         stop_dist = self.slider_stop_dist.value()
         align_speed = self.slider_align_speed.value()
         timeout = self.slider_timeout.value() / 10.0
-        motor_left_boost = self.slider_motor_left.value() / 100.0  # ✅ NEW: Motor balance
-        ai_frame_interval = self.slider_ai_frame.value()  # ✅ NEW: AI Frame Interval
+        motor_left_boost = self.slider_motor_left.value() / 100.0
+        ai_frame_interval = self.slider_ai_frame.value()
         
         self.app.apply_auto_config(speed, conf, spin_enabled, scan_dur, wait_dur, verify_time, 
                                    scan_speed, search_delay, align_tol, turn_sens, stop_dist,

@@ -19,13 +19,13 @@ for finder, name, ispkg in pkgutil.walk_packages(path=ultralytics.__path__, pref
             print('Class object:', cls)
             try:
                 src = inspect.getsource(cls)
-                print('\n--- AAttn source ---\n')
+                print('\nAAttn source\n')
                 print(src)
-                print('\n--- end source ---\n')
+                print('\nend source\n')
             except Exception as e:
                 print('Could not get source:', e)
             found = True
             break
 
 if not found:
-    print('AAttn class not found in ultralytics package (searched common subpackages).')
+    print('AAttn class not found in ultralytics package.')

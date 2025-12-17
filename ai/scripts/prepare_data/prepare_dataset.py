@@ -4,7 +4,6 @@ import random
 
 LABEL_DIR = "ai/data/cam1/label1"
 
-# Thư mục ảnh
 IMAGE_DIR = "ai/data/cam1/pic1"
 
 OUTPUT_DIR = "ai/data/final_yolo_trash_dataset111111111"
@@ -43,7 +42,7 @@ def process_class(class_name, class_id):
         img_path = os.path.join(img_folder, img)
 
         if not os.path.exists(label_path):
-            print(f"[WARN] Missing label for {img}")
+            print(f"Missing label for {img}")
             continue
 
         paired_list.append((img_path, label_path))
@@ -70,7 +69,7 @@ def process_class(class_name, class_id):
 
             shutil.copy(lbl_path, os.path.join(OUTPUT_DIR, "labels", split_name, lbl_name))
 
-    print(f" -> Finished {class_name}: {total} files")
+    print(f"Finished {class_name}: {total} files")
 
 def write_classes_txt():
     with open(os.path.join(OUTPUT_DIR, "classes.txt"), "w") as f:

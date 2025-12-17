@@ -3,8 +3,8 @@ import os
 def update_class_id_in_folder(target_folder, new_class_id):
     new_id_str = str(new_class_id)
     
-    print(f"Bắt đầu xử lý thư mục: {target_folder}")
-    print(f"Sẽ thay thế tất cả Class ID thành: {new_id_str}")
+    print(f"Starting processing folder: {target_folder}")
+    print(f"Will replace all Class ID with: {new_id_str}")
     
     file_count = 0
     
@@ -32,9 +32,9 @@ def update_class_id_in_folder(target_folder, new_class_id):
                 file_count += 1
 
             except Exception as e:
-                print(f"Lỗi khi xử lý file {filename}: {e}")
+                print(f"Error processing file {filename}: {e}")
 
-    print(f"Đã cập nhật {file_count} file trong thư mục.")
+    print(f"Updated {file_count} file.")
 
 ID = 8
 
@@ -43,6 +43,6 @@ FOLDER = 'ai/data/label/trash_txt'
 
 if __name__ == "__main__":
     if not os.path.isdir(FOLDER):
-        print(f"Thư mục '{FOLDER}' không tồn tại.")
+        print(f"Folder'{FOLDER}' not found.")
     else:
         update_class_id_in_folder(FOLDER, ID)

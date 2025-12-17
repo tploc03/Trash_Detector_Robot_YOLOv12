@@ -1,10 +1,10 @@
 import os
 
 def find_empty_label_files(target_folder):
-    print(f"Bắt đầu tìm file nhãn rỗng trong: {target_folder}")
+    print(f"Start: {target_folder}")
 
     if not os.path.isdir(target_folder):
-        print(f"LỖI: Thư mục '{target_folder}' không tồn tại.")
+        print(f"ERROR: Folder '{target_folder}' not found.")
         return
 
     empty_files_found = []
@@ -26,12 +26,11 @@ def find_empty_label_files(target_folder):
                 print(f"Lỗi khi đọc file {filename}: {e}")
 
     if empty_files_found:
-        print(f"\n✅ Đã tìm thấy {len(empty_files_found)} file nhãn rỗng:")
+        print(f"\nFound {len(empty_files_found)} empty label files:")
         for name in empty_files_found:
             print(f"  -> {name}")
     else:
-        print("\n✅ Không tìm thấy file nhãn rỗng nào.")
-
+        print("\nNo empty label files found.")
 FOLDER = 'yolo_dataset/labels/train'
 
 if __name__ == "__main__":

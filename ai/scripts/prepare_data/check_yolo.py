@@ -25,7 +25,7 @@ def check_yolo_label(path):
             if not (0 <= v <= 1):
                 print(f"[ERROR] {path} - line {i}: {name}={v} out of range [0,1]")
 
-    print(f"[OK] Finished checking: {path}")
+    print(f"Finished: {path}")
 
 folder = "ai/data/label_v3/glass_txt"
 for file in os.listdir(folder):

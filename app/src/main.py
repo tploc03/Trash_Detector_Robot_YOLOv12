@@ -71,7 +71,6 @@ class DetectionCompleteDialog(QDialog):
         
         layout.addSpacing(20)
         
-        # ✅ NEW: 2 options when Scan Mode ON
         if self.scan_mode_on:
             btn_layout = QHBoxLayout()
             
@@ -203,7 +202,7 @@ class RobotApp(QMainWindow):
         
         main_lay.addWidget(left_widget, 65)  # 65% width
 
-        # ==================== RIGHT PANEL ====================
+        # RIGHT PANEL
         right_widget = QWidget()
         right_lay = QVBoxLayout(right_widget)
         right_lay.setSpacing(10)
@@ -211,7 +210,7 @@ class RobotApp(QMainWindow):
         right_widget.setMinimumWidth(350)
         right_widget.setMaximumWidth(500)
 
-        # === RADAR GROUP (Fixed height) ===
+        # RADAR GROUP
         grp_sens = QGroupBox("RADAR")
         grp_sens.setFixedHeight(180)
         grp_sens.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
@@ -338,19 +337,32 @@ class RobotApp(QMainWindow):
         self.robot.ALIGN_TOLERANCE = align_tol
         self.robot.TURN_SENSITIVITY = turn_sens
         self.robot.STOP_DISTANCE = stop_dist
-        # ✅ NEW: Motor balance
-        self.robot.MOTOR_LEFT_BOOST = motor_left_boost
-        self.robot.MOTOR_RIGHT_BOOST = 1.0 / motor_left_boost  # Inverse để giữ power
-        # ✅ NEW: AI Frame Interval
+        
+        if motor_left_boost > 0:
+            self.robot.MOTOR_LEFT_BOOST = motor_left_boost
+            self.robot.MOTOR_RIGHT_BOOST = 1.0 / motor_left_boost
+        else:
+            self.robot.MOTOR_LEFT_BOOST = 1.0
+            self.robot.MOTOR_RIGHT_BOOST = 1.0
+        
         if self.video_thread:
             self.video_thread.process_every_n_frames = ai_frame_interval
         
+        if spin_enabled:
+            self.robot.enable_search(True)
+        else:
+            # Explicitly disable search
+            self.robot.search_enabled = False
+            if not self.is_auto:
+                self.robot.state = RobotState.IDLE
+        
+        # Update video conf if already in auto mode
         if self.is_auto:
             self.video_thread.update_conf(conf)
-            self.robot.enable_search(spin_enabled)
         
         print(f"AUTO CONFIG UPDATED:")
         print(f"   Speed: {speed}, Confidence: {conf:.2f}")
+        print(f"   Scan Mode: {'ON' if spin_enabled else 'OFF'}")
         print(f"   Scan: {scan_dur}s / Wait: {wait_dur}s / Verify: {verify_time}s")
         print(f"   Scan Speed: {scan_speed}%, Delay: {search_delay}s")
         print(f"   Align Tol: {align_tol}px, Turn Sens: {turn_sens}, Stop: {stop_dist}cm")
@@ -369,7 +381,7 @@ class RobotApp(QMainWindow):
             print(f"Flash Error: {e}")
             self.show_loading("FLASH ERROR", 500)
 
-    # --- MODE CONTROL ---
+    #MODE CONTROL
     def request_toggle_mode(self):
         if self.btn_mode.isChecked():
             self.set_mode(True)
@@ -414,7 +426,7 @@ class RobotApp(QMainWindow):
             self.net_thread.send_command({"cmd": "STOP", "L": 0, "R": 0})
             self.robot.emergency_stop()
 
-    # --- AUTO LOOP ---
+    # AUTO LOOP
     def auto_control_loop(self):
         if not self.is_auto: return
         
@@ -447,14 +459,13 @@ class RobotApp(QMainWindow):
 
     def handle_trash_reached(self):
         self.net_thread.send_command({"cmd": "STOP", "L": 0, "R": 0})
-        self.sound.play_done()  # ✅ ALWAYS play done sound
+        self.sound.play_done()
         
         trash_name = self.robot.current_label
         trash_name = self.robot.current_label or "UNKNOWN"
         if not trash_name:
             trash_name = "TRASH"
         
-        # ✅ FIX: Always show dialog (with option to continue if Scan Mode ON)
         self.auto_timer.stop()
         QTimer.singleShot(200, lambda: self.show_completion_dialog(trash_name, self.robot.search_enabled))
 

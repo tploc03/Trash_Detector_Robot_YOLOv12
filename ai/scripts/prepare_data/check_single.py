@@ -41,25 +41,24 @@ def main():
     missing_images = lbl_names - img_names
     matched = img_names & lbl_names
 
-    print("Tổng số ảnh:", len(img_names))
-    print("Tổng số nhãn:", len(lbl_names))
-    print("Ảnh & nhãn khớp:", len(matched))
+    print("Total image:", len(img_names))
+    print("Total labels:", len(lbl_names))
+    print("Matched images and labels:", len(matched))
 
-    print("ẢNH THIẾU NHÃN:")
+    print("Images missing labels:")
     for name in sorted(missing_labels):
         print(" -", img_dict[name])
     if not missing_labels:
-        print("Không có.")
+        print("None.")
 
 
-    print("NHÃN THIẾU ẢNH:")
+    print("Labels missing images:")
     for name in sorted(missing_images):
         print(" -", lbl_dict[name])
     if not missing_images:
-        print("Không có.")
+        print("None.")
 
-    # 3. Những cặp đầy đủ
-    print("ẢNH + NHÃN ĐẦY ĐỦ:", len(matched))
+    print("Matched images and labels:", len(matched))
     # for name in sorted(matched):
     #     print(" -", name)
 

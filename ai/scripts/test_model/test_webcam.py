@@ -4,59 +4,38 @@ import types
 from ultralytics import YOLO
 
 
-# ================== CẦN SỬA CHO PHÙ HỢP MÁY BẠN ==================
-
-# Đường dẫn tới model đã train xong (best.pt)
 MODEL_PATH = r"ai/runs/yolov12_trash_detection/weights/best.pt"
 
-# Chọn chế độ test: "image", "folder", "video", "webcam"
 MODE = "webcam"
 
-# Nếu MODE là "image", "folder" hoặc "video" thì sửa SOURCE cho hợp
-# - image:  path tới 1 file ảnh .jpg/.png
-# - folder: path tới folder chứa nhiều ảnh
-# - video:  path tới file .mp4/.avi
-# - webcam: bỏ qua SOURCE, luôn dùng 0
-SOURCE = r"D:/ploc/test_images"   # ví dụ folder ảnh test
 
-# Kích thước ảnh input (nên trùng lúc train)
+SOURCE = r"D:/ploc/test_images" 
+
 IMAGE_SIZE = 640
 
-# Ngưỡng confidence để hiển thị bbox
 CONF_THRES = 0.3
 
-# Thư mục lưu kết quả (chỉ dùng cho image/folder/video)
 SAVE_DIR = r"D:/ploc/test_results"
 RUN_NAME = "trash_yolov12_test"
-
-# ================================================================
 
 
 def load_model():
     if not os.path.exists(MODEL_PATH):
-        raise FileNotFoundError(f"Không tìm thấy model tại: {MODEL_PATH}")
+        raise FileNotFoundError(f"Can not find model at: {MODEL_PATH}")
 
-    # In thông tin device
     if torch.cuda.is_available():
-        print(f"Đang sử dụng GPU: {torch.cuda.get_device_name(0)}")
+        print(f"GPU: {torch.cuda.get_device_name(0)}")
         device = 0
     else:
-        print("Đang sử dụng CPU (sẽ chậm hơn).")
         device = "cpu"
 
-    print("Đang tải mô hình...")
+    print("Load model from:", MODEL_PATH)
     model = YOLO(MODEL_PATH)
 
-    # Khắc phục tương thích cho các checkpoint cũ:
-    # Một số checkpoint cũ có AAttn chứa 'qk' và 'v' thay vì 'qkv'.
-    # Nếu module AAttn của model hiện tại thiếu thuộc tính 'qkv'
-    # chúng ta thêm một phương thức tổng hợp để tránh AttributeError.
     def fix_aattn_compat(m):
         for mod in m.model.modules():
-            # Kiểm tra tên lớp để tránh import trực tiếp
             if mod.__class__.__name__ == 'AAttn':
                 if not hasattr(mod, 'qkv') and hasattr(mod, 'qk') and hasattr(mod, 'v'):
-                    # Tạo method qkv tương thích: nối qk và v theo chiều channel
                     def _qkv(self, x):
                         qk_out = self.qk(x)
                         v_out = self.v(x)
@@ -66,19 +45,16 @@ def load_model():
     try:
         fix_aattn_compat(model)
     except Exception:
-        # Không gây lỗi nếu việc vá không thành công
         pass
 
-    print("Đã tải mô hình thành công!\n")
+    print("Load model successfully.\n")
 
     return model, device
 
 
 def run_webcam(model):
-    print("Bắt đầu test bằng WEBCAM")
-    print(">>> Nhấn 'q' trên cửa sổ webcam để thoát <<<")
+    print("'q' to quit.\n")
 
-    # Ultralytics sẽ tự mở cửa sổ hiển thị khi show=True
     results = model.predict(
         source=0,
         show=True,
@@ -89,36 +65,33 @@ def run_webcam(model):
 
     try:
         for r in results:
-            # Nếu muốn xem thông tin dự đoán từng frame:
-            # print(r.boxes.cls, r.boxes.conf)
             pass
     except KeyboardInterrupt:
-        print("\nĐã dừng webcam bằng Ctrl+C.")
+        pass
     finally:
         import cv2
         cv2.destroyAllWindows()
-        print("Đã đóng cửa sổ webcam.")
+        print("Quit.")
 
 
 def run_image_folder_video(model):
     if not os.path.exists(SOURCE):
-        raise FileNotFoundError(f"Không tìm thấy SOURCE: {SOURCE}")
+        raise FileNotFoundError(f"Can not find SOURCE: {SOURCE}")
 
-    print(f"Bắt đầu predict với SOURCE: {SOURCE}")
-    print(f"Kết quả sẽ được lưu trong: {SAVE_DIR}/{RUN_NAME}")
+    print(f"Start predict with SOURCE: {SOURCE}")
+    print(f"Results will be saved in: {SAVE_DIR}/{RUN_NAME}")
 
     results = model.predict(
         source=SOURCE,
         imgsz=IMAGE_SIZE,
         conf=CONF_THRES,
-        save=True,           # lưu ảnh/video đã vẽ bbox
+        save=True,
         project=SAVE_DIR,
         name=RUN_NAME,
-        exist_ok=True,       # không tạo run mới nếu đã tồn tại
-        show=True            # nếu muốn xem trực tiếp
+        exist_ok=True, 
+        show=True
     )
 
-    # In thông tin cơ bản của từng file
     for r in results:
         print("-" * 50)
         print("File:", r.path)
@@ -126,8 +99,6 @@ def run_image_folder_video(model):
         if len(r.boxes):
             print("Classes:", r.boxes.cls.tolist())
             print("Conf   :", r.boxes.conf.tolist())
-
-    print("\nXONG! Kết quả đã được lưu.")
 
 
 def main():
@@ -139,10 +110,10 @@ def main():
         elif MODE.lower() in ["image", "folder", "video"]:
             run_image_folder_video(model)
         else:
-            print(f"MODE không hợp lệ: {MODE}")
-            print("Hãy chọn 1 trong: 'image', 'folder', 'video', 'webcam'")
+            print(f"MODE : {MODE}")
+            print("Choose one of: 'image', 'folder', 'video', 'webcam'")
     except Exception as e:
-        print("\nĐÃ XẢY RA LỖI KHI TEST MODEL:")
+        print("\nERROR TEST MODEL:")
         print(e)
 
 

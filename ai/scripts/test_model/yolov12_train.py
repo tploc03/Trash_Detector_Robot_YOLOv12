@@ -6,7 +6,7 @@ DATA_YAML_PATH = r"D:/LocTP/data.yaml"
 
 def train_local():
     device = '0' if torch.cuda.is_available() else 'cpu'
-    print(f"Thiết bị huấn luyện: {device} ({torch.cuda.get_device_name(0) if device == '0' else 'CPU'})")
+    print(f"Device: {device} ({torch.cuda.get_device_name(0) if device == '0' else 'CPU'})")
 
     model = YOLO('yolov12n.pt') 
 

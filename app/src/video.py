@@ -8,7 +8,6 @@ import torch
 import types
 
 def fix_aattn_compat(m):
-    """Sửa lỗi thiếu thuộc tính 'qkv' trong module AAttn của YOLOv12"""
     try:
         model_to_scan = m.model if hasattr(m, 'model') else m
         
@@ -47,7 +46,6 @@ class VideoThread(QThread):
         self.ai_frame_counter = 0
         self.detection_count = 0
         
-        # ✅ NEW: Reconnect backoff
         self.reconnect_delay = 0.5
         self.reconnect_attempt = 0
         self.last_reconnect_time = 0
@@ -63,7 +61,6 @@ class VideoThread(QThread):
         
     def set_ai_mode(self, enabled):
         self.ai_enabled = enabled
-        # Chỉ load model khi cần thiết (khi bật Auto Mode)
         if enabled and not hasattr(self, 'model'):
             print(f"Loading YOLO model from {self.model_path}...")
             try:
@@ -75,7 +72,7 @@ class VideoThread(QThread):
                 print(f"AI Detection ENABLED - Running on every {self.process_every_n_frames} frames")
             except Exception as e:
                 print(f"Model Error: {e}")
-                self.ai_enabled = False # Tắt AI nếu load lỗi
+                self.ai_enabled = False
         elif not enabled:
             print("AI Detection DISABLED")
 
@@ -83,7 +80,6 @@ class VideoThread(QThread):
         print(f"Video Thread Starting with: {self.stream_url}")
         cap = cv2.VideoCapture(self.stream_url)
         cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
-        # ✅ NEW: Set timeout on stream connection (3 seconds)
         cap.set(cv2.CAP_PROP_OPEN_TIMEOUT_MSEC, 3000)
         cap.set(cv2.CAP_PROP_READ_TIMEOUT_MSEC, 3000)
         
@@ -100,7 +96,6 @@ class VideoThread(QThread):
                 cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
                 cap.set(cv2.CAP_PROP_OPEN_TIMEOUT_MSEC, 3000)
                 cap.set(cv2.CAP_PROP_READ_TIMEOUT_MSEC, 3000)
-                # ✅ NEW: Reset frame counters on reconnect
                 self.ai_frame_counter = 0
                 self.detection_count = 0
                 no_frame_count = 0
@@ -110,7 +105,6 @@ class VideoThread(QThread):
             
             if not ret:
                 no_frame_count += 1
-                # ✅ NEW: Exponential backoff with max 5s delay
                 if no_frame_count > 10:  # After 10 failed reads, start backing off
                     if time.time() - self.last_reconnect_time > self.reconnect_delay:
                         print(f"No Frame ({no_frame_count}x). Reconnecting with {self.reconnect_delay}s delay...")
@@ -124,7 +118,7 @@ class VideoThread(QThread):
                         self.ai_frame_counter = 0
                         self.detection_count = 0
                         no_frame_count = 0
-                        # Exponential backoff: 0.5s → 1s → 2s → 5s (max)
+                        # Exponential backoff
                         self.reconnect_delay = min(5.0, self.reconnect_delay * 2)
                         self.last_reconnect_time = time.time()
                     else:
@@ -133,24 +127,23 @@ class VideoThread(QThread):
                     self.msleep(500)
                 continue
             else:
-                # ✅ NEW: Reset backoff on successful frame read
                 if no_frame_count > 0:
                     print(f"Connection restored after {no_frame_count} failures")
                     self.reconnect_delay = 0.5  # Reset to initial delay
                     no_frame_count = 0
             
-            # Resize để tăng tốc độ xử lý
+            # Resize
             h, w = frame.shape[:2]
             if w > 640:
                 scale = 640 / w
                 frame = cv2.resize(frame, (640, int(h * scale)))
             
-            # --- AI Logic ---
+            # AI Logic
             if self.ai_enabled and hasattr(self, 'model'):
                 self.ai_frame_counter += 1
                 if self.ai_frame_counter % self.process_every_n_frames == 0:
                     try:
-                        # Dự đoán
+                        # predict
                         results = self.model.predict(
                             frame, 
                             conf=self.confidence, 
@@ -165,7 +158,7 @@ class VideoThread(QThread):
                                 x1, y1, x2, y2 = box.xyxy[0].cpu().numpy()
                                 conf = float(box.conf[0])
                                 cls = int(box.cls[0])
-                                label = results[0].names[cls]  # "trash"
+                                label = results[0].names[cls]  # trash
                                 center_x = int((x1 + x2) / 2)
                                 
                                 detections.append({
@@ -187,7 +180,6 @@ class VideoThread(QThread):
                             #     label = results[0].names[cls]
                             #     if label not in class_filter:
                             #         continue
-                            #     ... (xử lý như trên)
                                           
                         if detections:
                             self.detection_count += 1
